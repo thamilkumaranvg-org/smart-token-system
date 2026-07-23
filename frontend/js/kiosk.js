@@ -270,6 +270,24 @@ async function generateRecommendedTicket() {
     }
 }
 
+// Fetch AI predicted wait time
+async function fetchAIWaitTime() {
+    try {
+        const response = await fetch(`${API_BASE}/api/admin/ai-insights?office_type=${sessionOffice}`);
+        if (response.ok) {
+            const data = await response.json();
+            const waitTimeEl = document.getElementById("user-token-wait-time");
+            if (data.predicted_wait_time_minutes > 0) {
+                waitTimeEl.textContent = `~${data.predicted_wait_time_minutes} minutes`;
+            } else {
+                waitTimeEl.textContent = `Less than 5 minutes`;
+            }
+        }
+    } catch (err) {
+        console.error("Error loading AI wait time:", err);
+    }
+}
+
 // Fetch user's active token and update UI
 async function checkAndLoadActiveToken() {
     const email = sessionStorage.getItem("userEmail");
@@ -297,15 +315,20 @@ async function checkAndLoadActiveToken() {
                     statusEl.style.background = "rgba(16, 185, 129, 0.15)";
                     statusEl.style.border = "1px solid rgba(16, 185, 129, 0.3)";
                     statusEl.style.color = "var(--accent-success)";
+                    document.getElementById("user-token-wait-time-container").style.display = "none";
                 } else if (token.status === "HOLD") {
                     statusEl.style.background = "rgba(245, 158, 11, 0.15)";
                     statusEl.style.border = "1px solid rgba(245, 158, 11, 0.3)";
                     statusEl.style.color = "var(--accent-warning)";
+                    document.getElementById("user-token-wait-time-container").style.display = "none";
                 } else {
                     // PENDING
                     statusEl.style.background = "rgba(99, 102, 241, 0.15)";
                     statusEl.style.border = "1px solid rgba(99, 102, 241, 0.3)";
                     statusEl.style.color = "var(--accent-primary)";
+                    
+                    document.getElementById("user-token-wait-time-container").style.display = "block";
+                    fetchAIWaitTime();
                 }
             } else {
                 sessionStorage.removeItem("activeCustomerToken");

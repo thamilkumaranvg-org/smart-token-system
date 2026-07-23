@@ -1,5 +1,5 @@
 // Change to your Render URL in production (e.g. "https://smart-token-backend.onrender.com")
-const BACKEND_URL = ""; 
+const BACKEND_URL = "https://smart-token-backend-l8zm.onrender.com"; 
 const API_BASE = BACKEND_URL || window.location.origin;
 const WS_BASE = API_BASE.replace(/^http/, 'ws');
 

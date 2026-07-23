@@ -314,7 +314,7 @@ You must respond ONLY with a JSON object in this exact format:
 }}
 """
     try:
-        model = genai.GenerativeModel("gemini-2.5-flash")
+        model = genai.GenerativeModel("gemini-1.5-flash")
         response = model.generate_content(prompt)
         text_resp = response.text.strip()
         
@@ -398,7 +398,7 @@ You must respond ONLY with a JSON object in this exact format:
 }}
 """
     try:
-        model = genai.GenerativeModel("gemini-2.5-flash")
+        model = genai.GenerativeModel("gemini-1.5-flash")
         response = model.generate_content(prompt)
         text_resp = response.text.strip()
         

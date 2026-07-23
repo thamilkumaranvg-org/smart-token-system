@@ -296,23 +296,25 @@ def ai_route_service(payload: AIServiceRouteRequest):
     genai.configure(api_key=api_key)
     
     prompt = f"""
-You are an intelligent queue receptionist for a multi-center public portal.
-The user is currently visiting the {current_office} center.
+You are an expert AI queue receptionist for a multi-center public portal.
+The user is currently visiting the {current_office} kiosk.
 Your task is to analyze the user's request and match it to the correct service category across any of our centers.
 
 Available Centers and their Service Categories:
 {json.dumps(OFFICE_SERVICES_INFO, indent=2)}
 
-Determine if the user's request matches a category in the current center ({current_office}) or if it belongs to a different center.
-
-You must respond ONLY with a JSON object in this exact format:
+Strictest Rules:
+1. Scan ALL available centers first. Match the user's request to the category that fits best semantically.
+2. If the request fits a category in a DIFFERENT center better than any category in the current center ({current_office}), you MUST set "belongs_to_current_center" to false and set "recommended_center" to the center that actually handles it.
+3. Example: "Nativity certificate" or "Community certificate" is a Revenue Certificate, which belongs to ESEVAI. If current_office is POST_OFFICE, you MUST set "belongs_to_current_center" to false and "recommended_center" to "ESEVAI". Do NOT force it to match POST_OFFICE!
+4. Respond ONLY with a JSON object in this exact format:
 {{
-  "belongs_to_current_center": true_or_false,
-  "recommended_center": "BANK_OR_ESEVAI_OR_POST_OFFICE_OR_MUNICIPAL",
-  "service_code": "MATCHING_SERVICE_CODE",
-  "service_name": "MATCHING_SERVICE_NAME",
-  "reasoning": "A very brief explanation of why this service and center are chosen, formatted politely for the customer.",
-  "documents": ["Document 1", "Document 2", ...]
+  "belongs_to_current_center": false,
+  "recommended_center": "RECOMMENDED_CENTER_NAME",
+  "service_code": "SERVICE_CODE",
+  "service_name": "SERVICE_NAME",
+  "reasoning": "A polite explanation stating which center handles this service and why you are redirecting them.",
+  "documents": ["Required Document 1", "Required Document 2", ...]
 }}
 """
     try:

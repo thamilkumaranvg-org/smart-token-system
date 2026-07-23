@@ -290,26 +290,28 @@ def ai_route_service(payload: AIServiceRouteRequest):
     if not api_key:
         raise HTTPException(status_code=500, detail="Gemini API Key not configured on server.")
     
-    office = payload.office_type.upper().strip()
-    services = OFFICE_SERVICES_INFO.get(office, OFFICE_SERVICES_INFO["BANK"])
+    current_office = payload.office_type.upper().strip()
     
     # Configure Gemini
     genai.configure(api_key=api_key)
     
     prompt = f"""
-You are an intelligent queue receptionist for a public service center ({payload.office_type}).
-Your task is to analyze the user's request, match it to one of the available service categories, and suggest required documents they need to show the agent.
+You are an intelligent queue receptionist for a multi-center public portal.
+The user is currently visiting the {current_office} center.
+Your task is to analyze the user's request and match it to the correct service category across any of our centers.
 
-Available Services for this center:
-{json.dumps(services, indent=2)}
+Available Centers and their Service Categories:
+{json.dumps(OFFICE_SERVICES_INFO, indent=2)}
 
-User request: "{payload.user_input}"
+Determine if the user's request matches a category in the current center ({current_office}) or if it belongs to a different center.
 
 You must respond ONLY with a JSON object in this exact format:
 {{
+  "belongs_to_current_center": true_or_false,
+  "recommended_center": "BANK_OR_ESEVAI_OR_POST_OFFICE_OR_MUNICIPAL",
   "service_code": "MATCHING_SERVICE_CODE",
   "service_name": "MATCHING_SERVICE_NAME",
-  "reasoning": "A very brief explanation of why this service is chosen, formatted politely for the customer.",
+  "reasoning": "A very brief explanation of why this service and center are chosen, formatted politely for the customer.",
   "documents": ["Document 1", "Document 2", ...]
 }}
 """
@@ -326,6 +328,11 @@ You must respond ONLY with a JSON object in this exact format:
         text_resp = text_resp.strip()
         
         parsed = json.loads(text_resp)
+        
+        # Ensure fields exist
+        if "belongs_to_current_center" not in parsed:
+            parsed["belongs_to_current_center"] = (parsed.get("recommended_center") == current_office)
+            
         return parsed
     except Exception as e:
         print("Gemini API Error:", e)

@@ -139,10 +139,6 @@ aiAskBtn.addEventListener("click", async () => {
         
         aiRecommendedService = data;
         
-        // Show recommended service
-        aiRecService.textContent = `${data.service_code} - ${data.service_name}`;
-        aiRecReason.textContent = data.reasoning;
-        
         // Populate documents list
         aiRecDocs.innerHTML = "";
         if (data.documents && data.documents.length > 0) {
@@ -157,13 +153,39 @@ aiAskBtn.addEventListener("click", async () => {
             aiRecDocs.appendChild(li);
         }
         
+        aiRecReason.textContent = data.reasoning;
+        
+        // Check if the service belongs to the current center
+        if (data.belongs_to_current_center) {
+            aiRecService.textContent = `${data.service_code} - ${data.service_name}`;
+            aiGenerateBtn.textContent = "Generate Ticket";
+            aiGenerateBtn.className = "btn btn-success";
+            aiGenerateBtn.onclick = generateRecommendedTicket;
+        } else {
+            const centerNames = {
+                BANK: "Bank Branch",
+                ESEVAI: "E-Sevai Maiyam",
+                POST_OFFICE: "Post Office",
+                MUNICIPAL: "Municipal Corporation"
+            };
+            const targetName = centerNames[data.recommended_center] || data.recommended_center;
+            aiRecService.textContent = `[${targetName}] ${data.service_code} - ${data.service_name}`;
+            
+            aiGenerateBtn.textContent = `Switch to ${targetName}`;
+            aiGenerateBtn.className = "btn btn-primary";
+            aiGenerateBtn.onclick = () => {
+                sessionStorage.setItem("userOffice", data.recommended_center);
+                window.location.href = `/static/kiosk.html?center=${data.recommended_center}&auto_query=${encodeURIComponent(query)}`;
+            };
+        }
+        
         aiSuggestionBox.style.display = "flex";
     } catch (err) {
         alert(err.message || "Error calling Gemini AI. Make sure GEMINI_API_KEY is configured.");
         console.error(err);
     } finally {
         aiAskBtn.disabled = false;
-        aiAskBtn.textContent = "Ask AI";
+        aiAskBtn.textContent = "Ask";
     }
 });
 
@@ -174,8 +196,8 @@ aiCancelBtn.addEventListener("click", () => {
     aiRecommendedService = null;
 });
 
-// Generate AI Recommended Ticket
-aiGenerateBtn.addEventListener("click", async () => {
+// Generate AI Recommended Ticket (Named Function)
+async function generateRecommendedTicket() {
     if (!aiRecommendedService) return;
     
     aiGenerateBtn.disabled = true;
@@ -246,7 +268,7 @@ aiGenerateBtn.addEventListener("click", async () => {
         aiGenerateBtn.disabled = false;
         aiRecommendedService = null;
     }
-});
+}
 
 // Fetch user's active token and update UI
 async function checkAndLoadActiveToken() {
@@ -470,3 +492,14 @@ function setupWebSocket() {
 // Start application
 initKiosk();
 setupWebSocket();
+
+// Auto-trigger search query from redirect
+const urlParams = new URLSearchParams(window.location.search);
+const autoQuery = urlParams.get("auto_query");
+if (autoQuery) {
+    aiChatWindow.style.display = "flex";
+    aiInput.value = autoQuery;
+    setTimeout(() => {
+        aiAskBtn.click();
+    }, 700);
+}

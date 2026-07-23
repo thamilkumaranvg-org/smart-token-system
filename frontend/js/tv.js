@@ -109,13 +109,28 @@ function renderWaitingList(pendingTokens) {
     });
 }
 
+// Generate polite announcements dynamically
+function generatePoliteAnnouncement(tokenNumber, counterNumber) {
+    // Speak hyphenated tokens clearly, e.g. "A C - 0 1" -> "A C 0 1"
+    const formattedToken = tokenNumber.split('').map(char => char === '-' ? ' ' : char).join(' ');
+    const phrases = [
+        `Excuse me. Could the holder of token ${formattedToken} please proceed to counter number ${counterNumber}? Thank you.`,
+        `Attention please. Token ${formattedToken}, please make your way to counter number ${counterNumber}.`,
+        `May I have your attention. Token ${formattedToken} is now being served at counter ${counterNumber}.`,
+        `Token ${formattedToken}, please report to counter ${counterNumber}. Thank you.`
+    ];
+    const randomIndex = Math.floor(Math.random() * phrases.length);
+    return phrases[randomIndex];
+}
+
 // Speak token calls out loud
 function announce(text) {
     if (!voiceEnabled) return;
     window.speechSynthesis.cancel();
     
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 0.9;
+    utterance.rate = 0.85; // Slightly slower for clear, professional speech
+    utterance.pitch = 1.0;
     
     const voices = window.speechSynthesis.getVoices();
     const defaultVoice = voices.find(v => v.lang.includes("en-US") || v.lang.includes("en-GB"));
@@ -154,7 +169,7 @@ function setupWebSocket() {
             const token = msg.data;
             loadQueueData().then(() => {
                 triggerVisualFlash(token.token_number);
-                const announcementText = `Token number ${token.token_number.split('').join(' ')}, please proceed to counter ${token.counter_assigned}`;
+                const announcementText = generatePoliteAnnouncement(token.token_number, token.counter_assigned);
                 announce(announcementText);
             });
         } else if (msg.type === "UPDATE_STATUS") {

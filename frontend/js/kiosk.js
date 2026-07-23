@@ -75,6 +75,160 @@ customerLogoutBtn.addEventListener("click", () => {
     window.location.href = "/static/index.html";
 });
 
+// AI Assistant DOM Elements
+const aiInput = document.getElementById("ai-input");
+const aiAskBtn = document.getElementById("ai-ask-btn");
+const aiSuggestionBox = document.getElementById("ai-suggestion-box");
+const aiRecService = document.getElementById("ai-rec-service");
+const aiRecReason = document.getElementById("ai-rec-reason");
+const aiRecDocs = document.getElementById("ai-rec-docs");
+const aiCancelBtn = document.getElementById("ai-cancel-btn");
+const aiGenerateBtn = document.getElementById("ai-generate-btn");
+const ticketDocsContainer = document.getElementById("ticket-docs-container");
+const ticketDocsList = document.getElementById("ticket-docs-list");
+
+let aiRecommendedService = null;
+
+// Ask AI Event Handler
+aiAskBtn.addEventListener("click", async () => {
+    const query = aiInput.value.trim();
+    if (!query) {
+        alert("Please describe what you want to do first.");
+        return;
+    }
+    
+    aiAskBtn.disabled = true;
+    aiAskBtn.textContent = "Thinking...";
+    
+    try {
+        const response = await fetch(`${API_BASE}/api/ai/route-service`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                user_input: query,
+                office_type: sessionOffice
+            })
+        });
+        
+        if (!response.ok) {
+            const errData = await response.json();
+            throw new Error(errData.detail || "AI failed to route service.");
+        }
+        
+        const data = await response.json();
+        
+        aiRecommendedService = data;
+        
+        // Show recommended service
+        aiRecService.textContent = `${data.service_code} - ${data.service_name}`;
+        aiRecReason.textContent = data.reasoning;
+        
+        // Populate documents list
+        aiRecDocs.innerHTML = "";
+        if (data.documents && data.documents.length > 0) {
+            data.documents.forEach(doc => {
+                const li = document.createElement("li");
+                li.textContent = doc;
+                aiRecDocs.appendChild(li);
+            });
+        } else {
+            const li = document.createElement("li");
+            li.textContent = "None specified. Bring standard ID proof.";
+            aiRecDocs.appendChild(li);
+        }
+        
+        aiSuggestionBox.style.display = "flex";
+    } catch (err) {
+        alert(err.message || "Error calling Gemini AI. Make sure GEMINI_API_KEY is configured.");
+        console.error(err);
+    } finally {
+        aiAskBtn.disabled = false;
+        aiAskBtn.textContent = "Ask AI";
+    }
+});
+
+// Clear AI Box
+aiCancelBtn.addEventListener("click", () => {
+    aiInput.value = "";
+    aiSuggestionBox.style.display = "none";
+    aiRecommendedService = null;
+});
+
+// Generate AI Recommended Ticket
+aiGenerateBtn.addEventListener("click", async () => {
+    if (!aiRecommendedService) return;
+    
+    aiGenerateBtn.disabled = true;
+    const customerEmail = sessionStorage.getItem("userEmail");
+    
+    // Convert documents to single string for customer_info
+    const docsStr = aiRecommendedService.documents ? aiRecommendedService.documents.join(", ") : "";
+    const customerInfo = docsStr ? `Required Docs: ${docsStr}` : "AI Routed Ticket";
+    
+    try {
+        const response = await fetch(`${API_BASE}/api/tokens/generate?office_type=${sessionOffice}`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                service_code: aiRecommendedService.service_code,
+                service_name: aiRecommendedService.service_name,
+                customer_info: customerInfo,
+                customer_email: customerEmail || null
+            })
+        });
+        
+        if (!response.ok) {
+            const errData = await response.json();
+            throw new Error(errData.detail || "Failed to generate token");
+        }
+        
+        const token = await response.json();
+        
+        // Save the generated token to session to track for targeted notifications
+        sessionStorage.setItem("activeCustomerToken", token.token_number);
+        
+        // Hide AI Box
+        aiInput.value = "";
+        aiSuggestionBox.style.display = "none";
+        
+        // Show ticket success modal with documents
+        ticketNumber.textContent = token.token_number;
+        ticketService.textContent = token.service_name;
+        
+        const dateStr = new Date(token.created_at).toLocaleString();
+        ticketTime.textContent = dateStr;
+        
+        // Show required documents list in success modal
+        ticketDocsList.innerHTML = "";
+        if (aiRecommendedService.documents && aiRecommendedService.documents.length > 0) {
+            aiRecommendedService.documents.forEach(doc => {
+                const li = document.createElement("li");
+                li.textContent = doc;
+                ticketDocsList.appendChild(li);
+            });
+            ticketDocsContainer.style.display = "block";
+        } else {
+            ticketDocsContainer.style.display = "none";
+        }
+        
+        successModal.classList.add("active");
+        
+        // Refresh active token display
+        checkAndLoadActiveToken();
+        
+    } catch (err) {
+        alert(err.message || "Error generating token.");
+        console.error(err);
+    } finally {
+        aiGenerateBtn.disabled = false;
+        aiRecommendedService = null;
+    }
+});
+
 // Fetch user's active token and update UI
 async function checkAndLoadActiveToken() {
     const email = sessionStorage.getItem("userEmail");
@@ -221,6 +375,9 @@ modalConfirmBtn.addEventListener("click", async () => {
         
         const dateStr = new Date(token.created_at).toLocaleString();
         ticketTime.textContent = dateStr;
+        
+        // Hide documents container for manual generations
+        ticketDocsContainer.style.display = "none";
         
         successModal.classList.add("active");
         

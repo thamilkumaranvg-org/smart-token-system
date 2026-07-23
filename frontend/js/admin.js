@@ -51,6 +51,30 @@ async function loadMetrics() {
     }
 }
 
+// Fetch AI Insights
+async function loadAIInsights() {
+    try {
+        const response = await fetch(`${API_BASE}/api/admin/ai-insights?office_type=${sessionOffice}`);
+        if (response.ok) {
+            const data = await response.json();
+            document.getElementById("ai-pred-wait").textContent = `${data.predicted_wait_time_minutes}m`;
+            document.getElementById("ai-efficiency").textContent = `${data.efficiency_score}%`;
+            
+            const bottleneckEl = document.getElementById("ai-bottleneck");
+            bottleneckEl.textContent = data.bottleneck_service;
+            if (data.bottleneck_service === "None") {
+                bottleneckEl.style.color = "var(--accent-success)";
+            } else {
+                bottleneckEl.style.color = "var(--accent-danger)";
+            }
+            
+            document.getElementById("ai-rec-tip").textContent = data.recommendation;
+        }
+    } catch (err) {
+        console.error("Error loading AI insights:", err);
+    }
+}
+
 // Fetch active tokens list for the table
 async function loadTableDetails() {
     try {
@@ -186,6 +210,7 @@ function setupWebSocket() {
         if (msg.type === "NEW_TOKEN" || msg.type === "CALL_TOKEN" || msg.type === "UPDATE_STATUS") {
             loadMetrics();
             loadTableDetails();
+            loadAIInsights();
         } else if (msg.type === "UPDATE_COUNTERS") {
             loadCounters();
         }
@@ -201,4 +226,5 @@ initHeader();
 loadMetrics();
 loadTableDetails();
 loadCounters();
+loadAIInsights();
 setupWebSocket();

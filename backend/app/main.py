@@ -5,6 +5,8 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import List, Optional
 import os
+import json
+import google.generativeai as genai
 
 from . import models, schemas, crud
 from .database import engines, get_db_dynamic
@@ -251,3 +253,168 @@ async def websocket_endpoint(websocket: WebSocket):
             data = await websocket.receive_text()
     except WebSocketDisconnect:
         manager.disconnect(websocket)
+
+# AI Integration Support structures and endpoints
+class AIServiceRouteRequest(BaseModel):
+    user_input: str
+    office_type: str
+
+OFFICE_SERVICES_INFO = {
+    "BANK": [
+        {"code": "AC", "name": "Account Opening & KYC", "desc": "Open new account, submit documentations, update address"},
+        {"code": "CS", "name": "Cash Transactions", "desc": "Deposit cash, withdraw money, process cheques"},
+        {"code": "AD", "name": "Aadhaar & Loans", "desc": "Aadhaar update, loan applications, FD/RD setups"}
+    ],
+    "ESEVAI": [
+        {"code": "RV", "name": "Revenue Certificates", "desc": "Community, Income, Nativity, First Graduate certificates"},
+        {"code": "SS", "name": "Pension Schemes", "desc": "Old Age Pension, Destitute Widow, Disability pension"},
+        {"code": "LD", "name": "Land & Utilities", "desc": "Patta transfer, Chitta, A-Register, Electricity bills"}
+    ],
+    "POST_OFFICE": [
+        {"code": "MP", "name": "Mails & Parcels", "desc": "Speed Post, Registered Post, domestic/international mail"},
+        {"code": "SB", "name": "Savings Bank & Money transfer", "desc": "Post office savings account, IPPB, Money orders"},
+        {"code": "INS", "name": "Postal Life Insurance", "desc": "PLI, RPLI, Pradhan Mantri Bima Yojana applications"},
+        {"code": "RT", "name": "Retail & Aadhaar", "desc": "Aadhaar services, Passport Seva Seva, stamps purchase"}
+    ],
+    "MUNICIPAL": [
+        {"code": "CR", "name": "Civil Registration", "desc": "Birth certificate, Death certificate, Marriage registration"},
+        {"code": "TX", "name": "Taxation & Payments", "desc": "Property tax, professional tax payment, trade licensing dues"},
+        {"code": "PL", "name": "Permits & Licenses", "desc": "Building permissions, construction approvals, license renewal"},
+        {"code": "UG", "name": "Utilities & Grievances", "desc": "Water connection request, drainage issues, municipal complaints"}
+    ]
+}
+
+@app.post("/api/ai/route-service")
+def ai_route_service(payload: AIServiceRouteRequest):
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="Gemini API Key not configured on server.")
+    
+    office = payload.office_type.upper().strip()
+    services = OFFICE_SERVICES_INFO.get(office, OFFICE_SERVICES_INFO["BANK"])
+    
+    # Configure Gemini
+    genai.configure(api_key=api_key)
+    
+    prompt = f"""
+You are an intelligent queue receptionist for a public service center ({payload.office_type}).
+Your task is to analyze the user's request, match it to one of the available service categories, and suggest required documents they need to show the agent.
+
+Available Services for this center:
+{json.dumps(services, indent=2)}
+
+User request: "{payload.user_input}"
+
+You must respond ONLY with a JSON object in this exact format:
+{{
+  "service_code": "MATCHING_SERVICE_CODE",
+  "service_name": "MATCHING_SERVICE_NAME",
+  "reasoning": "A very brief explanation of why this service is chosen, formatted politely for the customer.",
+  "documents": ["Document 1", "Document 2", ...]
+}}
+"""
+    try:
+        model = genai.GenerativeModel("gemini-2.5-flash")
+        response = model.generate_content(prompt)
+        text_resp = response.text.strip()
+        
+        # Clean response string to extract JSON (in case model wraps it in markdown)
+        if text_resp.startswith("```json"):
+            text_resp = text_resp[7:]
+        if text_resp.endswith("```"):
+            text_resp = text_resp[:-3]
+        text_resp = text_resp.strip()
+        
+        parsed = json.loads(text_resp)
+        return parsed
+    except Exception as e:
+        print("Gemini API Error:", e)
+        raise HTTPException(status_code=500, detail=f"AI routing failed: {str(e)}")
+
+@app.get("/api/admin/ai-insights")
+def get_ai_insights(office_type: str, db: Session = Depends(get_db_dynamic)):
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        return {
+            "predicted_wait_time_minutes": 0,
+            "efficiency_score": 100,
+            "bottleneck_service": "None",
+            "recommendation": "Configure GEMINI_API_KEY in .env to enable AI insights and predictions!"
+        }
+        
+    start_of_day = crud.get_start_of_day()
+    pending = db.query(models.Token).filter(
+        models.Token.status == "PENDING",
+        models.Token.office_type == office_type,
+        models.Token.created_at >= start_of_day
+    ).all()
+    active = db.query(models.Token).filter(
+        models.Token.status == "SERVING",
+        models.Token.office_type == office_type,
+        models.Token.created_at >= start_of_day
+    ).all()
+    completed = db.query(models.Token).filter(
+        models.Token.status == "COMPLETED",
+        models.Token.office_type == office_type,
+        models.Token.created_at >= start_of_day
+    ).all()
+    counters = db.query(models.Counter).filter(models.Counter.office_type == office_type).all()
+    
+    # Calculate queue statistics
+    pending_by_service = {}
+    for t in pending:
+        pending_by_service[t.service_name] = pending_by_service.get(t.service_name, 0) + 1
+        
+    completed_by_service = {}
+    for t in completed:
+        completed_by_service[t.service_name] = completed_by_service.get(t.service_name, 0) + 1
+        
+    active_counters_count = len([c for c in counters if c.is_active])
+    
+    queue_data = {
+        "office_type": office_type,
+        "active_counters_count": active_counters_count,
+        "pending_count": len(pending),
+        "active_serving_count": len(active),
+        "completed_count": len(completed),
+        "pending_by_service": pending_by_service,
+        "completed_by_service": completed_by_service
+    }
+    
+    genai.configure(api_key=api_key)
+    prompt = f"""
+You are an expert AI queue management optimizer.
+Analyze this real-time queue snapshot for a {office_type} service center and provide predicted wait times and resource allocation advice.
+
+Queue Data Snapshot:
+{json.dumps(queue_data, indent=2)}
+
+You must respond ONLY with a JSON object in this exact format:
+{{
+  "predicted_wait_time_minutes": PREDICTED_NUMERIC_MINUTES,
+  "efficiency_score": ACCURACY_RATING_FROM_1_TO_100,
+  "bottleneck_service": "SERVICE_NAME_WITH_THE_MOST_BACKLOG_OR_None",
+  "recommendation": "Provide a single highly actionable tip to clear the queue backlog or improve counter assignments based on the snapshot."
+}}
+"""
+    try:
+        model = genai.GenerativeModel("gemini-2.5-flash")
+        response = model.generate_content(prompt)
+        text_resp = response.text.strip()
+        
+        if text_resp.startswith("```json"):
+            text_resp = text_resp[7:]
+        if text_resp.endswith("```"):
+            text_resp = text_resp[:-3]
+        text_resp = text_resp.strip()
+        
+        parsed = json.loads(text_resp)
+        return parsed
+    except Exception as e:
+        print("Gemini AI Insights Error:", e)
+        return {
+            "predicted_wait_time_minutes": len(pending) * 5,  # Fallback: simple heuristic
+            "efficiency_score": 85,
+            "bottleneck_service": "Unavailable",
+            "recommendation": f"AI Insights temporarily offline: {str(e)}"
+        }

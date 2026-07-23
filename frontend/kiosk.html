@@ -47,6 +47,39 @@
             </div>
         </div>
 
+        <!-- AI Service Finder Card -->
+        <div class="glass-container" style="padding: 2rem; margin-bottom: 2.5rem; border: 1px dashed rgba(99, 102, 241, 0.4); background: rgba(99, 102, 241, 0.02);">
+            <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem;">
+                <span style="font-size: 2rem;">🤖</span>
+                <div style="text-align: left;">
+                    <h3 style="font-size: 1.25rem; font-weight: 700;">AI Service Assistant</h3>
+                    <p style="font-size: 0.9rem; color: var(--text-secondary);">Tell the AI what you need to do, and it will recommend the correct counter and required documents!</p>
+                </div>
+            </div>
+            <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                <input type="text" id="ai-input" class="form-input" placeholder="e.g. I want to deposit a cheque, or I need my Nativity certificate" style="flex: 1; padding: 0.8rem 1.2rem;">
+                <button id="ai-ask-btn" class="btn btn-primary" style="padding: 0.8rem 1.6rem; min-width: 120px;">Ask AI</button>
+            </div>
+            <!-- AI Recommendation Drawer -->
+            <div id="ai-suggestion-box" style="display: none; margin-top: 1.5rem; padding: 1.5rem; border-radius: var(--radius-md); background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); flex-direction: column; gap: 0.75rem; text-align: left;">
+                <div style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: var(--accent-success); letter-spacing: 0.05em;">
+                    AI Recommendation
+                </div>
+                <div id="ai-rec-service" style="font-size: 1.2rem; font-weight: 700; color: var(--text-primary);">--</div>
+                <p id="ai-rec-reason" style="font-size: 0.95rem; color: var(--text-secondary); line-height: 1.4;">--</p>
+                <div style="margin-top: 0.5rem;">
+                    <div style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 0.5rem;">Required Documents:</div>
+                    <ul id="ai-rec-docs" style="font-size: 0.9rem; padding-left: 1.25rem; color: var(--text-primary); display: flex; flex-direction: column; gap: 0.25rem;">
+                        <!-- Documents dynamically inserted -->
+                    </ul>
+                </div>
+                <div style="display: flex; gap: 1rem; margin-top: 1rem; justify-content: flex-end;">
+                    <button id="ai-cancel-btn" class="btn btn-danger" style="padding: 0.5rem 1rem; font-size: 0.9rem;">Clear</button>
+                    <button id="ai-generate-btn" class="btn btn-success" style="padding: 0.5rem 1rem; font-size: 0.9rem;">Generate recommended ticket</button>
+                </div>
+            </div>
+        </div>
+
         <div style="text-align: center; margin-bottom: 2rem;">
             <h1 style="font-size: 2.2rem; font-weight: 800; margin-bottom: 0.5rem;">Select Service</h1>
             <p style="color: var(--text-secondary);">Please select a category below to generate your queue ticket.</p>
@@ -85,6 +118,12 @@
                 <div id="ticket-number" style="font-size: 3.5rem; font-weight: 800; color: var(--accent-success); line-height: 1;">AC-01</div>
                 <div id="ticket-service" style="font-size: 0.95rem; color: var(--text-secondary); margin-top: 0.5rem; font-weight: 600;">Account Creation</div>
                 <div id="ticket-time" style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 1rem;">09-Jul-2026 12:00 PM</div>
+            </div>
+
+            <!-- Documents to prepare -->
+            <div id="ticket-docs-container" style="display: none; text-align: left; margin: 1rem 0; padding: 1rem; border-radius: var(--radius-md); background: rgba(99, 102, 241, 0.05); border: 1px solid rgba(99, 102, 241, 0.15);">
+                <div style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 0.4rem;">Bring these documents:</div>
+                <ul id="ticket-docs-list" style="font-size: 0.85rem; padding-left: 1.2rem; color: var(--text-primary); display: flex; flex-direction: column; gap: 0.2rem;"></ul>
             </div>
 
             <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 2rem;">

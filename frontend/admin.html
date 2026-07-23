@@ -109,6 +109,32 @@
                 </div>
             </div>
 
+            <!-- AI Insights Card -->
+            <div class="glass-container panel-section" style="margin-bottom: 2rem; border: 1px solid rgba(99, 102, 241, 0.3); background: rgba(99, 102, 241, 0.03);">
+                <div style="display: flex; gap: 0.8rem; align-items: center; margin-bottom: 1rem;">
+                    <span style="font-size: 1.8rem;">🤖</span>
+                    <h3 style="font-size: 1.25rem; font-weight: 700; text-align: left;">AI Optimization Insights</h3>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
+                    <div style="padding: 1rem; border-radius: var(--radius-md); background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.03); text-align: left;">
+                        <div style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">Predicted Wait Time</div>
+                        <div id="ai-pred-wait" style="font-size: 1.8rem; font-weight: 800; color: #c084fc; margin-top: 0.25rem;">0m</div>
+                    </div>
+                    <div style="padding: 1rem; border-radius: var(--radius-md); background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.03); text-align: left;">
+                        <div style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">Lobby Efficiency Rating</div>
+                        <div id="ai-efficiency" style="font-size: 1.8rem; font-weight: 800; color: var(--accent-success); margin-top: 0.25rem;">100%</div>
+                    </div>
+                    <div style="padding: 1rem; border-radius: var(--radius-md); background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.03); text-align: left;">
+                        <div style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">Current Queue Bottleneck</div>
+                        <div id="ai-bottleneck" style="font-size: 1.2rem; font-weight: 800; color: var(--accent-danger); margin-top: 0.4rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">None</div>
+                    </div>
+                </div>
+                <div style="padding: 1rem; border-radius: var(--radius-md); background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); text-align: left;">
+                    <div style="font-size: 0.8rem; font-weight: 700; color: var(--accent-primary); text-transform: uppercase; margin-bottom: 0.25rem;">AI Recommendation</div>
+                    <p id="ai-rec-tip" style="font-size: 0.95rem; color: var(--text-primary); line-height: 1.4;">Gathering queue diagnostics...</p>
+                </div>
+            </div>
+
             <!-- Detail Table -->
             <div class="glass-container panel-section">
                 <h3 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 1rem;">Active Queue Details</h3>

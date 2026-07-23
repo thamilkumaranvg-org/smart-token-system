@@ -1,0 +1,26 @@
+# Virtual environment
+backend/venv/
+
+# Environment variables (credentials)
+backend/.env
+
+# Python bytecode and cache
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+
+# IDE files
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# OS generated files
+.DS_Store
+Thumbs.db

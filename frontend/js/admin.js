@@ -1,5 +1,7 @@
-const API_BASE = window.location.origin;
-const WS_BASE = window.location.origin.replace(/^http/, 'ws');
+// Change to your Render URL in production (e.g. "https://smart-token-backend.onrender.com")
+const BACKEND_URL = ""; 
+const API_BASE = BACKEND_URL || window.location.origin;
+const WS_BASE = API_BASE.replace(/^http/, 'ws');
 
 // Verify Session
 const sessionToken = sessionStorage.getItem("userToken");

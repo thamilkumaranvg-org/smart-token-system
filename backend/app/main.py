@@ -93,8 +93,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Mount frontend files
-app.mount("/static", StaticFiles(directory="../frontend"), name="static")
+# Mount frontend files (wrapped to allow backend-only instances to run without static directory)
+try:
+    app.mount("/static", StaticFiles(directory="../frontend"), name="static")
+except Exception as e:
+    print("Frontend static mounting skipped (running in backend-only container):", e)
 
 # Global in-memory office type configuration
 active_office_type = os.getenv("OFFICE_TYPE", "BANK")

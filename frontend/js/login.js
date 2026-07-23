@@ -1,4 +1,6 @@
-const API_BASE = window.location.origin;
+// Change to your Render URL in production (e.g. "https://smart-token-backend.onrender.com")
+const BACKEND_URL = ""; 
+const API_BASE = BACKEND_URL || window.location.origin;
 
 // Get Active Center from URL
 const urlParams = new URLSearchParams(window.location.search);

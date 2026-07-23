@@ -514,3 +514,15 @@ body {
     color: var(--text-secondary);
     font-weight: 500;
 }
+
+/* AI Floating Chat Styles */
+#ai-chat-trigger:hover {
+    transform: scale(1.1) rotate(5deg);
+    box-shadow: 0 12px 40px rgba(99, 102, 241, 0.6);
+}
+#ai-chat-trigger:active {
+    transform: scale(0.95);
+}
+#ai-chat-close:hover {
+    color: var(--text-primary) !important;
+}

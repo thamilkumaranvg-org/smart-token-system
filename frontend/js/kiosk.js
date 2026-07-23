@@ -87,7 +87,25 @@ const aiGenerateBtn = document.getElementById("ai-generate-btn");
 const ticketDocsContainer = document.getElementById("ticket-docs-container");
 const ticketDocsList = document.getElementById("ticket-docs-list");
 
+const aiChatTrigger = document.getElementById("ai-chat-trigger");
+const aiChatWindow = document.getElementById("ai-chat-window");
+const aiChatClose = document.getElementById("ai-chat-close");
+
 let aiRecommendedService = null;
+
+// Toggle Floating Chat Panel
+aiChatTrigger.addEventListener("click", () => {
+    if (aiChatWindow.style.display === "none" || !aiChatWindow.style.display) {
+        aiChatWindow.style.display = "flex";
+        aiInput.focus();
+    } else {
+        aiChatWindow.style.display = "none";
+    }
+});
+
+aiChatClose.addEventListener("click", () => {
+    aiChatWindow.style.display = "none";
+});
 
 // Ask AI Event Handler
 aiAskBtn.addEventListener("click", async () => {
@@ -194,6 +212,7 @@ aiGenerateBtn.addEventListener("click", async () => {
         // Hide AI Box
         aiInput.value = "";
         aiSuggestionBox.style.display = "none";
+        aiChatWindow.style.display = "none";
         
         // Show ticket success modal with documents
         ticketNumber.textContent = token.token_number;

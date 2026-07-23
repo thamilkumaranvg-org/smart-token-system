@@ -47,39 +47,6 @@
             </div>
         </div>
 
-        <!-- AI Service Finder Card -->
-        <div class="glass-container" style="padding: 2rem; margin-bottom: 2.5rem; border: 1px dashed rgba(99, 102, 241, 0.4); background: rgba(99, 102, 241, 0.02);">
-            <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem;">
-                <span style="font-size: 2rem;">🤖</span>
-                <div style="text-align: left;">
-                    <h3 style="font-size: 1.25rem; font-weight: 700;">AI Service Assistant</h3>
-                    <p style="font-size: 0.9rem; color: var(--text-secondary);">Tell the AI what you need to do, and it will recommend the correct counter and required documents!</p>
-                </div>
-            </div>
-            <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
-                <input type="text" id="ai-input" class="form-input" placeholder="e.g. I want to deposit a cheque, or I need my Nativity certificate" style="flex: 1; padding: 0.8rem 1.2rem;">
-                <button id="ai-ask-btn" class="btn btn-primary" style="padding: 0.8rem 1.6rem; min-width: 120px;">Ask AI</button>
-            </div>
-            <!-- AI Recommendation Drawer -->
-            <div id="ai-suggestion-box" style="display: none; margin-top: 1.5rem; padding: 1.5rem; border-radius: var(--radius-md); background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); flex-direction: column; gap: 0.75rem; text-align: left;">
-                <div style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: var(--accent-success); letter-spacing: 0.05em;">
-                    AI Recommendation
-                </div>
-                <div id="ai-rec-service" style="font-size: 1.2rem; font-weight: 700; color: var(--text-primary);">--</div>
-                <p id="ai-rec-reason" style="font-size: 0.95rem; color: var(--text-secondary); line-height: 1.4;">--</p>
-                <div style="margin-top: 0.5rem;">
-                    <div style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 0.5rem;">Required Documents:</div>
-                    <ul id="ai-rec-docs" style="font-size: 0.9rem; padding-left: 1.25rem; color: var(--text-primary); display: flex; flex-direction: column; gap: 0.25rem;">
-                        <!-- Documents dynamically inserted -->
-                    </ul>
-                </div>
-                <div style="display: flex; gap: 1rem; margin-top: 1rem; justify-content: flex-end;">
-                    <button id="ai-cancel-btn" class="btn btn-danger" style="padding: 0.5rem 1rem; font-size: 0.9rem;">Clear</button>
-                    <button id="ai-generate-btn" class="btn btn-success" style="padding: 0.5rem 1rem; font-size: 0.9rem;">Generate recommended ticket</button>
-                </div>
-            </div>
-        </div>
-
         <div style="text-align: center; margin-bottom: 2rem;">
             <h1 style="font-size: 2.2rem; font-weight: 800; margin-bottom: 0.5rem;">Select Service</h1>
             <p style="color: var(--text-secondary);">Please select a category below to generate your queue ticket.</p>
@@ -130,6 +97,48 @@
                 Please watch the TV display or listen for announcements. 
             </p>
             <button id="success-close-btn" class="btn btn-primary" style="width: 100%;">Done</button>
+        </div>
+    </div>
+
+    <!-- AI Floating Chat Trigger Button -->
+    <div id="ai-chat-trigger" style="position: fixed; bottom: 2rem; right: 2rem; width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, #6366f1, #8b5cf6); box-shadow: 0 8px 32px rgba(99, 102, 241, 0.4); display: flex; align-items: center; justify-content: center; font-size: 1.8rem; cursor: pointer; z-index: 9999; border: 1px solid rgba(255,255,255,0.2); transition: transform 0.3s ease, box-shadow 0.3s ease;">
+        🤖
+    </div>
+
+    <!-- AI Floating Chat Window -->
+    <div id="ai-chat-window" class="glass-container" style="display: none; position: fixed; bottom: 6.5rem; right: 2rem; width: 380px; max-width: calc(100vw - 4rem); max-height: 500px; flex-direction: column; z-index: 9999; border: 1px solid rgba(99, 102, 241, 0.3); background: rgba(15, 23, 42, 0.85); box-shadow: 0 12px 40px rgba(0,0,0,0.5); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); padding: 1.5rem; border-radius: var(--radius-lg);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 0.75rem;">
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <span style="font-size: 1.4rem;">🤖</span>
+                <h3 style="font-size: 1.1rem; font-weight: 700; margin: 0; color: var(--text-primary); text-align: left;">AI Kiosk Assistant</h3>
+            </div>
+            <span id="ai-chat-close" style="font-size: 1.2rem; cursor: pointer; color: var(--text-secondary); transition: color 0.2s;">✕</span>
+        </div>
+        <div style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1rem; padding-right: 0.25rem; text-align: left;">
+            <p style="font-size: 0.9rem; color: var(--text-secondary); margin: 0; line-height: 1.4;">
+                Tell the AI what you need to do, and it will recommend the correct counter and required documents!
+            </p>
+            
+            <!-- AI Recommendation Area -->
+            <div id="ai-suggestion-box" style="display: none; padding: 1rem; border-radius: var(--radius-md); background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); flex-direction: column; gap: 0.5rem; text-align: left;">
+                <div style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--accent-success); letter-spacing: 0.05em;">
+                    AI Recommendation
+                </div>
+                <div id="ai-rec-service" style="font-size: 1.1rem; font-weight: 700; color: var(--text-primary);">--</div>
+                <p id="ai-rec-reason" style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.4; margin: 0;">--</p>
+                <div style="margin-top: 0.25rem;">
+                    <div style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 0.25rem;">Required Documents:</div>
+                    <ul id="ai-rec-docs" style="font-size: 0.8rem; padding-left: 1.1rem; color: var(--text-primary); display: flex; flex-direction: column; gap: 0.2rem; margin: 0;"></ul>
+                </div>
+                <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem; justify-content: flex-end;">
+                    <button id="ai-cancel-btn" class="btn btn-danger" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">Clear</button>
+                    <button id="ai-generate-btn" class="btn btn-success" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">Generate Ticket</button>
+                </div>
+            </div>
+        </div>
+        <div style="display: flex; gap: 0.5rem; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 0.75rem;">
+            <input type="text" id="ai-input" class="form-input" placeholder="e.g. Deposit money or Patta transfer" style="flex: 1; padding: 0.6rem 1rem; font-size: 0.9rem;">
+            <button id="ai-ask-btn" class="btn btn-primary" style="padding: 0.6rem 1.2rem; font-size: 0.9rem; min-width: 80px;">Ask</button>
         </div>
     </div>
 

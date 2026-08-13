@@ -1,6 +1,6 @@
-// Change to your Render URL in production (e.g. "https://smart-token-backend.onrender.com")
-const BACKEND_URL = "https://smart-token-backend-l8zm.onrender.com"; 
-const API_BASE = BACKEND_URL || window.location.origin;
+const API_BASE = (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") 
+    ? window.location.origin 
+    : "https://smart-token-backend-l8zm.onrender.com";
 const WS_BASE = API_BASE.replace(/^http/, 'ws');
 
 // Verify Session
@@ -147,7 +147,7 @@ function renderCountersTable(counters) {
         const statusBadge = counter.is_active 
             ? '<span class="badge badge-serving">Active</span>' 
             : '<span class="badge badge-missed">Inactive</span>';
-            
+
         const actionButton = counter.is_active
             ? `<button class="btn btn-danger" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;" onclick="toggleCounter(${counter.id}, false)">Disable</button>`
             : `<button class="btn btn-success" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;" onclick="toggleCounter(${counter.id}, true)">Enable</button>`;

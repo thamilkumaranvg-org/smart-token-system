@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Smart Token - Portal Login</title>
     <link rel="stylesheet" href="/static/css/styles.css">
+    <script src="/static/js/theme.js"></script>
     <style>
         .login-box {
             max-width: 480px;
@@ -20,11 +21,16 @@
     </style>
 </head>
 <body>
-    <header class="app-header">
+    <header class="app-header" style="background: var(--header-bg); backdrop-filter: blur(12px);">
         <div class="app-logo">
-            <span>🎫</span> Authentication Portal
+            🎫 Authentication Portal
         </div>
-        <div id="office-type-tag" class="office-tag">Loading Office...</div>
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <div id="office-type-tag" class="office-tag">Loading Office...</div>
+            <button class="theme-toggle-btn" title="Toggle Light/Dark Theme">
+                🌙 <span class="theme-btn-text">Dark Mode</span>
+            </button>
+        </div>
     </header>
 
     <main class="app-content">
@@ -32,51 +38,60 @@
             
             <!-- Login View -->
             <div id="signin-view">
-                <h2 style="font-size: 1.6rem; font-weight: 700; margin-bottom: 0.5rem; text-align: center;">Sign In</h2>
-                <p style="color: var(--text-secondary); font-size: 0.9rem; text-align: center; margin-bottom: 2rem;">
+                <h2 data-i18n="signInTitle" style="font-size: 1.6rem; font-weight: 700; margin-bottom: 0.5rem; text-align: center;">Sign In</h2>
+                <p data-i18n="signInSubtitle" style="color: var(--text-secondary); font-size: 0.9rem; text-align: center; margin-bottom: 2rem;">
                     Sign in with your registered credentials to access your console.
                 </p>
                 <div id="signin-error" style="color: var(--accent-danger); font-size: 0.9rem; margin-bottom: 1.5rem; text-align: center; display: none; font-weight: 600;">
                     Invalid credentials.
                 </div>
                 <div class="form-group">
-                    <label class="form-label" for="signin-email">Email Address</label>
+                    <label class="form-label" for="signin-email" data-i18n="emailLabel">Email Address</label>
                     <input type="email" id="signin-email" class="form-input" placeholder="e.g., name@gmail.com" required>
                 </div>
                 <div class="form-group" style="margin-bottom: 2rem;">
-                    <label class="form-label" for="signin-password">Password</label>
-                    <input type="password" id="signin-password" class="form-input" placeholder="••••••••" required>
+                    <label class="form-label" for="signin-password" data-i18n="passwordLabel">Password</label>
+                    <div style="position: relative;">
+                        <input type="password" id="signin-password" class="form-input" placeholder="••••••••" required style="padding-right: 2.8rem;">
+                        <button type="button" class="password-eye-btn" onclick="togglePasswordVisibility('signin-password', this)" style="position: absolute; right: 0.8rem; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-size: 1.1rem; color: var(--text-secondary);" title="Show/Hide Password">👁️</button>
+                    </div>
                 </div>
-                <button id="signin-btn" class="btn btn-primary" style="width: 100%; padding: 0.9rem; margin-bottom: 1.5rem;">Sign In</button>
+                <button id="signin-btn" class="btn btn-primary" data-i18n="signIn" style="width: 100%; padding: 0.9rem; margin-bottom: 1.5rem;">Sign In</button>
                 <p style="text-align: center; font-size: 0.9rem; color: var(--text-secondary);">
-                    New visitor? <span id="to-signup-btn" class="toggle-link">Register account</span>
+                    <span data-i18n="newVisitor">New visitor?</span> <span id="to-signup-btn" class="toggle-link" data-i18n="registerLink">Register account</span>
                 </p>
             </div>
 
             <!-- Signup View (Hidden by default) -->
             <div id="signup-view" style="display: none;">
-                <h2 style="font-size: 1.6rem; font-weight: 700; margin-bottom: 0.5rem; text-align: center;">Customer Registration</h2>
-                <p style="color: var(--text-secondary); font-size: 0.9rem; text-align: center; margin-bottom: 2rem;">
+                <h2 data-i18n="signupTitle" style="font-size: 1.6rem; font-weight: 700; margin-bottom: 0.5rem; text-align: center;">Customer Registration</h2>
+                <p data-i18n="signupSubtitle" style="color: var(--text-secondary); font-size: 0.9rem; text-align: center; margin-bottom: 2rem;">
                     Create a customer account to generate kiosk tickets and monitor live status.
                 </p>
                 <div id="signup-error" style="color: var(--accent-danger); font-size: 0.9rem; margin-bottom: 1.5rem; text-align: center; display: none; font-weight: 600;">
                     Invalid signup details.
                 </div>
                 <div class="form-group">
-                    <label class="form-label" for="signup-email">Email Address</label>
+                    <label class="form-label" for="signup-email" data-i18n="emailLabel">Email Address</label>
                     <input type="email" id="signup-email" class="form-input" placeholder="e.g., customer@gmail.com" required>
                 </div>
                 <div class="form-group">
-                    <label class="form-label" for="signup-password">Password</label>
-                    <input type="password" id="signup-password" class="form-input" placeholder="Min. 5 characters" required>
+                    <label class="form-label" for="signup-password" data-i18n="passwordLabel">Password</label>
+                    <div style="position: relative;">
+                        <input type="password" id="signup-password" class="form-input" placeholder="Min. 5 characters" required style="padding-right: 2.8rem;">
+                        <button type="button" class="password-eye-btn" onclick="togglePasswordVisibility('signup-password', this)" style="position: absolute; right: 0.8rem; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-size: 1.1rem; color: var(--text-secondary);" title="Show/Hide Password">👁️</button>
+                    </div>
                 </div>
                 <div class="form-group" style="margin-bottom: 2rem;">
-                    <label class="form-label" for="signup-confirm-password">Confirm Password</label>
-                    <input type="password" id="signup-confirm-password" class="form-input" placeholder="Confirm password" required>
+                    <label class="form-label" for="signup-confirm-password" data-i18n="confirmPasswordLabel">Confirm Password</label>
+                    <div style="position: relative;">
+                        <input type="password" id="signup-confirm-password" class="form-input" placeholder="Confirm password" required style="padding-right: 2.8rem;">
+                        <button type="button" class="password-eye-btn" onclick="togglePasswordVisibility('signup-confirm-password', this)" style="position: absolute; right: 0.8rem; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-size: 1.1rem; color: var(--text-secondary);" title="Show/Hide Password">👁️</button>
+                    </div>
                 </div>
-                <button id="signup-btn" class="btn btn-success" style="width: 100%; padding: 0.9rem; margin-bottom: 1.5rem;">Register & Open Kiosk</button>
+                <button id="signup-btn" class="btn btn-success" data-i18n="registerBtn" style="width: 100%; padding: 0.9rem; margin-bottom: 1.5rem;">Register & Open Kiosk</button>
                 <p style="text-align: center; font-size: 0.9rem; color: var(--text-secondary);">
-                    Already have an account? <span id="to-signin-btn" class="toggle-link">Sign In</span>
+                    <span data-i18n="alreadyAccount">Already have an account?</span> <span id="to-signin-btn" class="toggle-link" data-i18n="signIn">Sign In</span>
                 </p>
             </div>
 

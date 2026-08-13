@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Smart Token - Admin Dashboard</title>
     <link rel="stylesheet" href="/static/css/styles.css">
+    <script src="/static/js/theme.js"></script>
     <style>
         .kpi-grid {
             display: grid;
@@ -62,49 +63,54 @@
     </style>
 </head>
 <body>
-    <header class="app-header">
+    <header class="app-header" style="background: var(--header-bg); backdrop-filter: blur(12px);">
         <div class="app-logo">
-            <span>📊</span> Office Admin Dashboard
+            📊 Office Admin Dashboard
         </div>
-        <div id="office-type-tag" class="office-tag">Loading Office...</div>
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <div id="office-type-tag" class="office-tag">Loading Office...</div>
+            <button class="theme-toggle-btn" title="Toggle Light/Dark Theme">
+                🌙 <span class="theme-btn-text">Dark Mode</span>
+            </button>
+        </div>
     </header>
 
     <main class="app-content">
         <!-- Authenticated Dashboard View -->
         <div id="admin-dashboard-view">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
-                <h2 style="font-size: 1.6rem; font-weight: 800;">Daily Performance Metrics</h2>
+                <h2 data-i18n="dailyPerformance" style="font-size: 1.6rem; font-weight: 800;">Daily Performance Metrics</h2>
                 
                 <!-- Logout inside Admin Dashboard -->
                 <div style="display: flex; gap: 0.8rem; align-items: center;">
-                    <button id="admin-logout-btn" class="btn btn-danger" style="padding: 0.5rem 1rem; font-size: 0.9rem;">Logout</button>
+                    <button id="admin-logout-btn" class="btn btn-danger" data-i18n="logout" style="padding: 0.5rem 1rem; font-size: 0.9rem;">Logout</button>
                 </div>
             </div>
             
             <!-- KPI Metrics Grid -->
             <div class="kpi-grid">
                 <div class="kpi-card glass-container">
-                    <div style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 600;">Total Tokens Generated</div>
+                    <div data-i18n="totalTokens" style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 600;">Total Tokens Generated</div>
                     <div id="kpi-total" class="kpi-value">0</div>
                 </div>
                 <div class="kpi-card glass-container">
-                    <div style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 600;">Waiting Customers</div>
+                    <div data-i18n="pendingQueue" style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 600;">Waiting Customers</div>
                     <div id="kpi-pending" class="kpi-value" style="color: var(--accent-warning);">0</div>
                 </div>
                 <div class="kpi-card glass-container">
-                    <div style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 600;">Currently Serving</div>
+                    <div data-i18n="currentlyServed" style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 600;">Currently Serving</div>
                     <div id="kpi-serving" class="kpi-value" style="color: var(--accent-success);">0</div>
                 </div>
                 <div class="kpi-card glass-container">
-                    <div style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 600;">Completed Services</div>
+                    <div data-i18n="complete" style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 600;">Completed Services</div>
                     <div id="kpi-completed" class="kpi-value" style="color: var(--accent-primary);">0</div>
                 </div>
                 <div class="kpi-card glass-container">
-                    <div style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 600;">No-Shows / Missed</div>
+                    <div data-i18n="noShowsMissed" style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 600;">No-Shows / Missed</div>
                     <div id="kpi-missed" class="kpi-value" style="color: var(--accent-danger);">0</div>
                 </div>
                 <div class="kpi-card glass-container">
-                    <div style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 600;">Avg. Wait Time</div>
+                    <div data-i18n="avgWaitTime" style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 600;">Avg. Wait Time</div>
                     <div id="kpi-avg-wait" class="kpi-value" style="color: #c084fc;">0m</div>
                 </div>
             </div>
@@ -113,41 +119,41 @@
             <div class="glass-container panel-section" style="margin-bottom: 2rem; border: 1px solid rgba(99, 102, 241, 0.3); background: rgba(99, 102, 241, 0.03);">
                 <div style="display: flex; gap: 0.8rem; align-items: center; margin-bottom: 1rem;">
                     <span style="font-size: 1.8rem;">🤖</span>
-                    <h3 style="font-size: 1.25rem; font-weight: 700; text-align: left;">AI Optimization Insights</h3>
+                    <h3 data-i18n="aiOptimization" style="font-size: 1.25rem; font-weight: 700; text-align: left;">AI Optimization Insights</h3>
                 </div>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
                     <div style="padding: 1rem; border-radius: var(--radius-md); background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.03); text-align: left;">
-                        <div style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">Predicted Wait Time</div>
+                        <div data-i18n="predictedWaitTime" style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">PREDICTED WAIT TIME</div>
                         <div id="ai-pred-wait" style="font-size: 1.8rem; font-weight: 800; color: #c084fc; margin-top: 0.25rem;">0m</div>
                     </div>
                     <div style="padding: 1rem; border-radius: var(--radius-md); background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.03); text-align: left;">
-                        <div style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">Lobby Efficiency Rating</div>
+                        <div data-i18n="lobbyEfficiency" style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">LOBBY EFFICIENCY RATING</div>
                         <div id="ai-efficiency" style="font-size: 1.8rem; font-weight: 800; color: var(--accent-success); margin-top: 0.25rem;">100%</div>
                     </div>
                     <div style="padding: 1rem; border-radius: var(--radius-md); background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.03); text-align: left;">
-                        <div style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">Current Queue Bottleneck</div>
+                        <div data-i18n="queueBottleneck" style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 600; text-transform: uppercase;">CURRENT QUEUE BOTTLENECK</div>
                         <div id="ai-bottleneck" style="font-size: 1.2rem; font-weight: 800; color: var(--accent-danger); margin-top: 0.4rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">None</div>
                     </div>
                 </div>
                 <div style="padding: 1rem; border-radius: var(--radius-md); background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); text-align: left;">
-                    <div style="font-size: 0.8rem; font-weight: 700; color: var(--accent-primary); text-transform: uppercase; margin-bottom: 0.25rem;">AI Recommendation</div>
+                    <div data-i18n="aiRecommendation" style="font-size: 0.8rem; font-weight: 700; color: var(--accent-primary); text-transform: uppercase; margin-bottom: 0.25rem;">AI RECOMMENDATION</div>
                     <p id="ai-rec-tip" style="font-size: 0.95rem; color: var(--text-primary); line-height: 1.4;">Gathering queue diagnostics...</p>
                 </div>
             </div>
 
             <!-- Detail Table -->
             <div class="glass-container panel-section">
-                <h3 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 1rem;">Active Queue Details</h3>
+                <h3 data-i18n="activeQueueDetails" style="font-size: 1.2rem; font-weight: 700; margin-bottom: 1rem;">Active Queue Details</h3>
                 <div class="table-container">
                     <table>
                         <thead>
                             <tr>
-                                <th>Token No.</th>
-                                <th>Service Category</th>
-                                <th>Customer Info</th>
-                                <th>Status</th>
-                                <th>Assigned Counter</th>
-                                <th>Created At</th>
+                                <th data-i18n="tokenNo">TOKEN NO.</th>
+                                <th data-i18n="serviceCategory">SERVICE CATEGORY</th>
+                                <th data-i18n="customerInfo">CUSTOMER INFO</th>
+                                <th data-i18n="statusLabel">STATUS</th>
+                                <th data-i18n="assignedCounter">ASSIGNED COUNTER</th>
+                                <th data-i18n="createdAt">CREATED AT</th>
                             </tr>
                         </thead>
                         <tbody id="token-table-body">
@@ -162,19 +168,19 @@
             <!-- Counter Management Section -->
             <div class="glass-container panel-section" style="margin-top: 2rem;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                    <h3 style="font-size: 1.2rem; font-weight: 700;">Counter Allocation</h3>
+                    <h3 data-i18n="counterAllocation" style="font-size: 1.2rem; font-weight: 700;">Counter Allocation</h3>
                     <div style="display: flex; gap: 0.8rem; align-items: center;">
                         <input type="number" id="new-counter-number" class="form-input" placeholder="Counter No." style="width: 120px; padding: 0.5rem 1rem;" min="1">
-                        <button id="add-counter-btn" class="btn btn-success" style="padding: 0.5rem 1rem; font-size: 0.9rem;">+ Add Counter</button>
+                        <button id="add-counter-btn" class="btn btn-success" data-i18n="addCounter" style="padding: 0.5rem 1rem; font-size: 0.9rem;">+ Add Counter</button>
                     </div>
                 </div>
                 <div class="table-container">
                     <table>
                         <thead>
                             <tr>
-                                <th>Counter No.</th>
-                                <th>Status</th>
-                                <th>Current Action</th>
+                                <th data-i18n="counterNo">COUNTER NO.</th>
+                                <th data-i18n="statusLabel">STATUS</th>
+                                <th data-i18n="currentAction">CURRENT ACTION</th>
                             </tr>
                         </thead>
                         <tbody id="counter-table-body">

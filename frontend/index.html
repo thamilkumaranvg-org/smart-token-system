@@ -5,42 +5,95 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Smart Token - Select Public Center</title>
     <link rel="stylesheet" href="/static/css/styles.css">
-    <style>
-        .selector-box {
-            max-width: 500px;
-            margin: 6rem auto;
-            padding: 3rem;
-            text-align: center;
-        }
-    </style>
+    <script src="/static/js/theme.js"></script>
 </head>
 <body>
-    <header class="app-header">
+    <header class="app-header" style="background: var(--header-bg); backdrop-filter: blur(12px);">
         <div class="app-logo">
             <span>🎫</span> Smart Token System
         </div>
+        <button class="theme-toggle-btn" title="Toggle Light/Dark Theme">
+            🌙 <span class="theme-btn-text">Dark Mode</span>
+        </button>
     </header>
 
     <main class="app-content">
-        <div class="glass-container selector-box">
-            <h1 style="font-size: 2.2rem; font-weight: 800; margin-bottom: 1rem; line-height: 1.2;">Select Public Center</h1>
-            <p style="color: var(--text-secondary); font-size: 0.95rem; margin-bottom: 2.5rem; line-height: 1.4;">
-                Please select the center you want to access, then proceed to the authentication portal.
-            </p>
-            
-            <div class="form-group" style="margin-bottom: 2.5rem;">
-                <label class="form-label" style="text-align: center;">Office Center</label>
-                <select id="hub-office-selector" class="form-input" style="background-color: var(--bg-dark); font-size: 1.1rem; padding: 1rem 1.5rem; text-align-last: center; font-weight: 600; cursor: pointer;">
-                    <option value="BANK">🏦 Bank Branch</option>
-                    <option value="ESEVAI">📝 E-Sevai Maiyam</option>
-                    <option value="POST_OFFICE">📦 Post Office</option>
-                    <option value="MUNICIPAL">🏗️ Municipal Corporation</option>
-                </select>
+        <!-- Center Selection Cards Grid -->
+        <div id="step-centers" class="hero-step-container" style="display: block; max-width: 950px; margin: 0 auto;">
+            <div style="margin-bottom: 2rem; text-align: center;">
+                <h1 id="center-title" style="font-size: 2.2rem; font-weight: 800; margin-bottom: 0.5rem;">Select Public Center</h1>
+                <p id="center-desc" style="color: var(--text-secondary); font-size: 1.05rem;">
+                    Select the public service center you wish to access
+                </p>
             </div>
-            
-            <button id="proceed-btn" class="btn btn-primary" style="width: 100%; padding: 1rem; font-size: 1.1rem;">
-                Proceed to Login →
-            </button>
+
+            <!-- Hidden selector for form compatibility -->
+            <select id="hub-office-selector" style="display: none;">
+                <option value="BANK">Bank Branch</option>
+                <option value="ESEVAI">E-Sevai Maiyam</option>
+                <option value="POST_OFFICE">Post Office</option>
+                <option value="MUNICIPAL">Municipal Corporation</option>
+            </select>
+            <button id="proceed-btn" style="display: none;"></button>
+
+            <!-- 2x2 Interactive Cards Grid -->
+            <div class="center-grid">
+                <!-- Card 1: BANK -->
+                <div class="center-card" onclick="chooseCenter('BANK')">
+                    <div class="center-card-icon">🏦</div>
+                    <div>
+                        <div id="title-bank" class="center-card-title">Bank Branch</div>
+                        <p id="desc-bank" style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 1rem;">
+                            Account Opening, KYC, Deposits & Loan Services
+                        </p>
+                    </div>
+                    <button id="btn-bank" class="btn btn-primary" style="width: 100%; font-size: 0.95rem;">
+                        Select Center →
+                    </button>
+                </div>
+
+                <!-- Card 2: ESEVAI -->
+                <div class="center-card" onclick="chooseCenter('ESEVAI')">
+                    <div class="center-card-icon">📝</div>
+                    <div>
+                        <div id="title-esevai" class="center-card-title">E-Sevai Maiyam</div>
+                        <p id="desc-esevai" style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 1rem;">
+                            Community, Income, Nativity Certificates & Patta
+                        </p>
+                    </div>
+                    <button id="btn-esevai" class="btn btn-primary" style="width: 100%; font-size: 0.95rem;">
+                        Select Center →
+                    </button>
+                </div>
+
+                <!-- Card 3: POST_OFFICE -->
+                <div class="center-card" onclick="chooseCenter('POST_OFFICE')">
+                    <div class="center-card-icon">📦</div>
+                    <div>
+                        <div id="title-post" class="center-card-title">Post Office</div>
+                        <p id="desc-post" style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 1rem;">
+                            Speed Post, Parcels, Postal Savings & PLI
+                        </p>
+                    </div>
+                    <button id="btn-post" class="btn btn-primary" style="width: 100%; font-size: 0.95rem;">
+                        Select Center →
+                    </button>
+                </div>
+
+                <!-- Card 4: MUNICIPAL -->
+                <div class="center-card" onclick="chooseCenter('MUNICIPAL')">
+                    <div class="center-card-icon">🏗️</div>
+                    <div>
+                        <div id="title-municipal" class="center-card-title">Municipal Corporation</div>
+                        <p id="desc-municipal" style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 1rem;">
+                            Birth/Death Certificates, Property Tax & Permits
+                        </p>
+                    </div>
+                    <button id="btn-municipal" class="btn btn-primary" style="width: 100%; font-size: 0.95rem;">
+                        Select Center →
+                    </button>
+                </div>
+            </div>
         </div>
     </main>
 

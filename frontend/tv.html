@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Smart Token - Lobby Display</title>
     <link rel="stylesheet" href="/static/css/styles.css">
+    <script src="/static/js/theme.js"></script>
     <style>
         body {
             height: 100vh;
@@ -13,17 +14,20 @@
     </style>
 </head>
 <body>
-    <header class="app-header">
+    <header class="app-header" style="background: var(--header-bg); backdrop-filter: blur(12px);">
         <div class="app-logo">
-            <span>📺</span> Lobby Display Panel
+            📺 Lobby Display Panel
         </div>
-        <div style="display: flex; gap: 1.2rem; align-items: center;">
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
             <button id="enable-audio-btn" class="btn btn-warning" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">
                 🔊 Enable Voice
             </button>
             <div id="office-type-tag" class="office-tag">Loading Office...</div>
+            <button class="theme-toggle-btn" title="Toggle Light/Dark Theme">
+                🌙 <span class="theme-btn-text">Dark Mode</span>
+            </button>
             <div id="live-time" style="font-weight: 600; font-size: 1.1rem; text-align: right;">00:00:00</div>
-            <button id="tv-logout-btn" class="btn btn-danger" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">Logout</button>
+            <button id="tv-logout-btn" class="btn btn-danger" data-i18n="logout" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">Logout</button>
         </div>
     </header>
 

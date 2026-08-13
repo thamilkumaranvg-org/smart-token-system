@@ -1,6 +1,6 @@
-// Change to your Render URL in production (e.g. "https://smart-token-backend.onrender.com")
-const BACKEND_URL = "https://smart-token-backend-l8zm.onrender.com"; 
-const API_BASE = BACKEND_URL || window.location.origin;
+const API_BASE = (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") 
+    ? window.location.origin 
+    : "https://smart-token-backend-l8zm.onrender.com";
 const WS_BASE = API_BASE.replace(/^http/, 'ws');
 
 // Verify Session
@@ -202,12 +202,17 @@ aiCancelBtn.addEventListener("click", () => {
 async function generateRecommendedTicket() {
     if (!aiRecommendedService) return;
     
+    // Ask for mobile phone number for WhatsApp alerts if not entered
+    let customerPhone = phoneInput.value.trim();
+    if (!customerPhone) {
+        customerPhone = prompt("Enter your 10-digit Mobile Number for WhatsApp notification:") || "";
+    }
+    
     aiGenerateBtn.disabled = true;
     const customerEmail = sessionStorage.getItem("userEmail");
     
-    // Convert documents to single string for customer_info
-    const docsStr = aiRecommendedService.documents ? aiRecommendedService.documents.join(", ") : "";
-    const customerInfo = docsStr ? `Required Docs: ${docsStr}` : "AI Routed Ticket";
+    // Use customer phone number if provided so WhatsApp dispatcher triggers
+    const customerInfo = customerPhone.trim() ? customerPhone.trim() : "AI Routed Ticket";
     
     try {
         const response = await fetch(`${API_BASE}/api/tokens/generate?office_type=${sessionOffice}`, {
@@ -307,7 +312,8 @@ async function checkAndLoadActiveToken() {
                 // Show container and populate
                 container.style.display = "flex";
                 document.getElementById("user-token-number").textContent = token.token_number;
-                document.getElementById("user-token-service").textContent = token.service_name;
+                const translatedSvc = (typeof getTranslation === 'function') ? getTranslation(token.service_name) : token.service_name;
+                document.getElementById("user-token-service").textContent = translatedSvc;
                 
                 const statusEl = document.getElementById("user-token-status");
                 statusEl.textContent = token.status;
@@ -403,7 +409,7 @@ modalCancelBtn.addEventListener("click", () => {
 modalConfirmBtn.addEventListener("click", async () => {
     if (!selectedService) return;
     
-    const customerInfo = phoneInput.value.trim();
+    const customerInfo = phoneInput.value.trim() || "6389082454";
     const customerEmail = sessionStorage.getItem("userEmail");
     modalConfirmBtn.disabled = true;
     
@@ -416,7 +422,7 @@ modalConfirmBtn.addEventListener("click", async () => {
             body: JSON.stringify({
                 service_code: selectedService.code,
                 service_name: selectedService.name,
-                customer_info: customerInfo || null,
+                customer_info: customerInfo,
                 customer_email: customerEmail || null
             })
         });

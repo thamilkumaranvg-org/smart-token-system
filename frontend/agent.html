@@ -5,15 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Smart Token - Agent Console</title>
     <link rel="stylesheet" href="/static/css/styles.css">
+    <script src="/static/js/theme.js"></script>
 </head>
 <body>
-    <header class="app-header">
+    <header class="app-header" style="background: var(--header-bg); backdrop-filter: blur(12px);">
         <div class="app-logo">
-            <span>💻</span> Counter Agent Console
+            💻 Counter Agent Console
         </div>
-        <div style="display: flex; gap: 1rem; align-items: center;">
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
             <div id="counter-display" class="office-tag" style="background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.3); color: #34d399;">Offline</div>
             <div id="office-type-tag" class="office-tag">Loading Office...</div>
+            <button class="theme-toggle-btn" title="Toggle Light/Dark Theme">
+                🌙 <span class="theme-btn-text">Dark Mode</span>
+            </button>
             <button id="agent-logout-btn" class="btn btn-danger" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">Logout</button>
         </div>
     </header>
@@ -21,14 +25,14 @@
     <main class="app-content">
         <!-- Setup / Login Section -->
         <div id="login-section" class="glass-container panel-section" style="max-width: 500px; margin: 4rem auto;">
-            <h2 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 1.5rem; text-align: center;">Counter Login</h2>
+            <h2 data-i18n="counterLogin" style="font-size: 1.5rem; font-weight: 700; margin-bottom: 1.5rem; text-align: center;">Counter Login</h2>
             <div class="form-group">
-                <label class="form-label" for="counter-select">Select Counter Number</label>
+                <label class="form-label" for="counter-select" data-i18n="selectCounter">Select Counter Number</label>
                 <select id="counter-select" class="form-input" style="background-color: var(--bg-dark);">
                     <!-- Dynamic counters will load here -->
                 </select>
             </div>
-            <button id="login-btn" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">Start Serving</button>
+            <button id="login-btn" class="btn btn-primary" data-i18n="startServing" style="width: 100%; margin-top: 1rem;">Start Serving</button>
         </div>
 
         <!-- Workstation Section (Initially Hidden) -->
@@ -36,7 +40,7 @@
             <!-- Left Side: Serving Panel -->
             <div class="glass-container panel-section" style="height: fit-content;">
                 <div class="console-header">
-                    <h2 style="font-size: 1.4rem; font-weight: 700;">Active Customer</h2>
+                    <h2 data-i18n="activeCustomer" style="font-size: 1.4rem; font-weight: 700;">Active Customer</h2>
                     <span id="status-badge" class="office-tag" style="background: rgba(99,102,241,0.15); color: #818cf8;">Ready</span>
                 </div>
 
@@ -45,20 +49,20 @@
                 </div>
 
                 <div class="console-actions">
-                    <button id="call-next-btn" class="btn btn-success" style="font-size: 1.1rem; padding: 1rem;">Call Next Customer</button>
-                    <button id="recall-btn" class="btn btn-warning" style="font-size: 1rem; display: none;">Recall</button>
-                    <button id="complete-btn" class="btn btn-primary" style="font-size: 1rem; display: none;">Mark Complete</button>
-                    <button id="missed-btn" class="btn btn-danger" style="font-size: 1rem; display: none;">Missed / No Show</button>
+                    <button id="call-next-btn" class="btn btn-success" data-i18n="callNext" style="font-size: 1.1rem; padding: 1rem;">Call Next Customer</button>
+                    <button id="recall-btn" class="btn btn-warning" data-i18n="recall" style="font-size: 1rem; display: none;">Recall</button>
+                    <button id="complete-btn" class="btn btn-primary" data-i18n="complete" style="font-size: 1rem; display: none;">Mark Complete</button>
+                    <button id="missed-btn" class="btn btn-danger" data-i18n="missed" style="font-size: 1rem; display: none;">Missed / No Show</button>
                 </div>
             </div>
 
             <!-- Right Side: Service Queue Overview -->
             <div class="glass-container panel-section" style="height: fit-content; display: flex; flex-direction: column;">
-                <h3 style="font-size: 1.1rem; font-weight: 700; text-transform: uppercase; color: #a5b4fc; margin-bottom: 1.5rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border-color);">
+                <h3 data-i18n="lobbyQueue" style="font-size: 1.1rem; font-weight: 700; text-transform: uppercase; color: #a5b4fc; margin-bottom: 1.5rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border-color);">
                     Lobby Queue Status
                 </h3>
                 <div style="display: flex; justify-content: space-between; margin-bottom: 1.5rem; font-weight: 600;">
-                    <span>People Waiting:</span>
+                    <span data-i18n="peopleWaiting">People Waiting:</span>
                     <span id="waiting-count" style="color: var(--accent-warning);">0</span>
                 </div>
                 <div id="queue-preview" class="waiting-list" style="max-height: 350px;">

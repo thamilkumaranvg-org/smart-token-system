@@ -5,14 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Smart Token - Self Service Kiosk</title>
     <link rel="stylesheet" href="/static/css/styles.css">
+    <script src="/static/js/theme.js"></script>
 </head>
 <body>
-    <header class="app-header">
+    <header class="app-header" style="background: var(--header-bg); backdrop-filter: blur(12px);">
         <div class="app-logo">
-            <span>🎫</span> Smart Token System
+            🎫 Smart Token System
         </div>
-        <div style="display: flex; gap: 1rem; align-items: center;">
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
             <div id="office-type-tag" class="office-tag">Loading Office...</div>
+            <button class="theme-toggle-btn" title="Toggle Light/Dark Theme">
+                🌙 <span class="theme-btn-text">Dark Mode</span>
+            </button>
             <button id="customer-logout-btn" class="btn btn-danger" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">Logout</button>
         </div>
     </header>
@@ -20,7 +24,7 @@
     <main class="app-content">
         <!-- Live Called Token Display Bar -->
         <div id="live-serving-bar" class="glass-container" style="padding: 1.5rem 2rem; display: flex; justify-content: space-between; align-items: center; margin-bottom: 2.5rem;">
-            <div style="font-weight: 700; color: var(--text-secondary); text-transform: uppercase; font-size: 0.9rem; letter-spacing: 0.05em;">
+            <div data-i18n="activeCalled" style="font-weight: 700; color: var(--text-secondary); text-transform: uppercase; font-size: 0.9rem; letter-spacing: 0.05em;">
                 📣 Active Called Token:
             </div>
             <div id="active-called-display" style="font-size: 1.8rem; font-weight: 800; color: var(--accent-success); text-shadow: 0 0 10px rgba(16, 185, 129, 0.25);">
@@ -31,7 +35,7 @@
         <!-- User's Active Token Display -->
         <div id="user-token-container" class="glass-container" style="display: none; padding: 1.5rem 2rem; align-items: center; justify-content: space-between; margin-bottom: 2.5rem; border: 1px solid rgba(99, 102, 241, 0.25); background: rgba(99, 102, 241, 0.05); box-shadow: 0 8px 32px 0 rgba(99, 102, 241, 0.1);">
             <div>
-                <div style="font-size: 0.85rem; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 0.05em; font-weight: 700;">
+                <div data-i18n="yourToken" style="font-size: 0.85rem; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 0.05em; font-weight: 700;">
                     Your Active Token
                 </div>
                 <div style="display: flex; align-items: baseline; gap: 1rem; margin-top: 0.25rem;">
@@ -44,7 +48,7 @@
                 </div>
             </div>
             <div style="text-align: right;">
-                <div style="font-size: 0.85rem; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 0.05em; font-weight: 700; margin-bottom: 0.25rem;">
+                <div data-i18n="statusLabel" style="font-size: 0.85rem; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 0.05em; font-weight: 700; margin-bottom: 0.25rem;">
                     Status
                 </div>
                 <span id="user-token-status" style="font-size: 1rem; padding: 0.4rem 0.8rem; font-weight: 700; display: inline-block; border-radius: 20px; background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.3); color: var(--accent-primary);">PENDING</span>
@@ -52,8 +56,8 @@
         </div>
 
         <div style="text-align: center; margin-bottom: 2rem;">
-            <h1 style="font-size: 2.2rem; font-weight: 800; margin-bottom: 0.5rem;">Select Service</h1>
-            <p style="color: var(--text-secondary);">Please select a category below to generate your queue ticket.</p>
+            <h1 data-i18n="selectCategoryTitle" style="font-size: 2.2rem; font-weight: 800; margin-bottom: 0.5rem;">Select Service Category</h1>
+            <p data-i18n="selectCategoryDesc" style="color: var(--text-secondary);">Please select a category below to generate your queue ticket.</p>
         </div>
 
         <div id="services-grid" class="grid-menu">
@@ -66,15 +70,15 @@
         <div class="modal-content glass-container">
             <h2 id="modal-service-name" style="margin-bottom: 1rem; font-size: 1.5rem;">Service Name</h2>
             <p style="color: var(--text-secondary); font-size: 0.95rem; margin-bottom: 1.5rem;">
-                Optional: Enter your phone number to receive real-time SMS status updates.
+                Enter your 10-digit mobile number below to receive instant WhatsApp/Telegram status updates!
             </p>
             <div class="form-group">
-                <label class="form-label" for="phone-input">Mobile Number</label>
-                <input type="tel" id="phone-input" class="form-input" placeholder="e.g., 9876543210" maxlength="10">
+                <label class="form-label" for="phone-input" data-i18n="mobileLabel">Mobile Number (WhatsApp/Telegram)</label>
+                <input type="tel" id="phone-input" class="form-input" placeholder="e.g., 9876543210" data-i18n-placeholder="mobilePlaceholder" maxlength="10" required>
             </div>
             <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem;">
                 <button id="modal-cancel-btn" class="btn btn-danger" style="padding: 0.6rem 1.2rem;">Cancel</button>
-                <button id="modal-confirm-btn" class="btn btn-primary" style="padding: 0.6rem 1.2rem;">Generate Ticket</button>
+                <button id="modal-confirm-btn" class="btn btn-primary" data-i18n="generateTicket" style="padding: 0.6rem 1.2rem;">Generate Ticket</button>
             </div>
         </div>
     </div>

@@ -1,6 +1,6 @@
-// Change to your Render URL in production (e.g. "https://smart-token-backend.onrender.com")
-const BACKEND_URL = "https://smart-token-backend-l8zm.onrender.com"; 
-const API_BASE = BACKEND_URL || window.location.origin;
+const API_BASE = (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") 
+    ? window.location.origin 
+    : "https://smart-token-backend-l8zm.onrender.com";
 const WS_BASE = API_BASE.replace(/^http/, 'ws');
 
 // Verify Session
@@ -134,7 +134,7 @@ function renderQueuePreview(pendingTokens) {
 // Set Active Token UI
 function setActiveToken(token) {
     activeToken = token;
-    statusBadge.textContent = "Serving";
+    statusBadge.textContent = "SERVING";
     statusBadge.style.background = "rgba(16, 185, 129, 0.15)";
     statusBadge.style.color = "#34d399";
     
@@ -142,7 +142,7 @@ function setActiveToken(token) {
         <div class="detail-token-num">${token.token_number}</div>
         <div class="detail-token-service">${token.service_name}</div>
         <div class="detail-token-info">
-            ${token.customer_info ? `📞 Phone: ${token.customer_info}` : '👤 Walk-in Customer (Anonymous)'}
+            ${token.customer_info ? `📞 Phone: ${token.customer_info}` : '👤 Walk-in Customer'}
         </div>
     `;
     
@@ -156,7 +156,7 @@ function setActiveToken(token) {
 // Set No Active Token UI
 function setNoActiveToken() {
     activeToken = null;
-    statusBadge.textContent = "Ready";
+    statusBadge.textContent = "READY";
     statusBadge.style.background = "rgba(99,102,241,0.15)";
     statusBadge.style.color = "#818cf8";
     
@@ -171,19 +171,21 @@ function setNoActiveToken() {
     missedBtn.style.display = "none";
 }
 
-// Button actions
+// Button Click Handlers
 callNextBtn.addEventListener("click", async () => {
     try {
-        const response = await fetch(`${API_BASE}/api/tokens/call-next?counter_number=${counterNumber}&office_type=${sessionOffice}`, {
+        const selectedCounter = parseInt(counterSelect.value);
+        const response = await fetch(`${API_BASE}/api/tokens/call-next?counter_number=${selectedCounter}&office_type=${sessionOffice}`, {
             method: "POST"
         });
         
         if (response.status === 404) {
-            alert("No pending customers in the queue!");
+            alert("No pending customers in queue.");
+            setNoActiveToken();
             return;
         }
         
-        if (!response.ok) throw new Error("Failed to call next");
+        if (!response.ok) throw new Error("Failed to call next token");
         
         const token = await response.json();
         setActiveToken(token);

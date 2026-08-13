@@ -11,6 +11,8 @@ import google.generativeai as genai
 from . import models, schemas, crud
 from .database import engines, get_db_dynamic
 from .websocket_manager import manager
+from .services.notification_service import send_whatsapp_token_created, send_whatsapp_token_called, send_whatsapp_token_recalled
+from .services.telegram_service import send_telegram_token_created, send_telegram_token_called, send_telegram_token_recalled
 
 # Create database tables for all engines
 try:
@@ -147,6 +149,14 @@ async def generate_token(office_type: str, token_in: schemas.TokenCreate, db: Se
         "data": schemas.Token.model_validate(db_token).model_dump(mode='json')
     })
     
+    # Non-blocking WhatsApp & Telegram Notifications
+    try:
+        if db_token.customer_info:
+            send_whatsapp_token_created(db_token.customer_info, db_token.token_number, db_token.service_name, office_type)
+            send_telegram_token_created(db_token.customer_info, db_token.token_number, db_token.service_name, office_type)
+    except Exception as notify_err:
+        print("[NOTIFICATION LOG] Non-blocking dispatch error:", notify_err)
+    
     return db_token
 
 @app.get("/api/tokens/active", response_model=Optional[schemas.Token])
@@ -171,6 +181,14 @@ async def call_next_token(counter_number: int, office_type: str, service_codes: 
         "data": schemas.Token.model_validate(db_token).model_dump(mode='json')
     })
     
+    # Non-blocking WhatsApp & Telegram Notifications on token called
+    try:
+        if db_token.customer_info:
+            send_whatsapp_token_called(db_token.customer_info, db_token.token_number, counter_number, office_type)
+            send_telegram_token_called(db_token.customer_info, db_token.token_number, counter_number, office_type)
+    except Exception as notify_err:
+        print("[NOTIFICATION LOG] Non-blocking dispatch error:", notify_err)
+    
     return db_token
 
 @app.post("/api/tokens/{token_id}/recall", response_model=schemas.Token)
@@ -185,6 +203,14 @@ async def recall_token(token_id: int, office_type: str, db: Session = Depends(ge
         "office_type": db_token.office_type,
         "data": schemas.Token.model_validate(db_token).model_dump(mode='json')
     })
+    
+    # Non-blocking Recall Notification
+    try:
+        if db_token.customer_info:
+            send_whatsapp_token_recalled(db_token.customer_info, db_token.token_number, db_token.office_type, status_note="RECALLED")
+            send_telegram_token_recalled(db_token.customer_info, db_token.token_number, db_token.office_type, status_note="RECALLED")
+    except Exception as notify_err:
+        print("[NOTIFICATION LOG] Recall dispatch error:", notify_err)
     
     return db_token
 
@@ -204,6 +230,16 @@ async def update_status(token_id: int, status: str, office_type: str, db: Sessio
         "office_type": db_token.office_type,
         "data": schemas.Token.model_validate(db_token).model_dump(mode='json')
     })
+    
+    # Non-blocking Status Change Notification (MISSED / HOLD / RE-QUEUED)
+    if status in ["MISSED", "HOLD", "PENDING"]:
+        try:
+            if db_token.customer_info:
+                status_label = "RE-QUEUED TO LAST" if status == "PENDING" else status
+                send_whatsapp_token_recalled(db_token.customer_info, db_token.token_number, db_token.office_type, status_note=status_label)
+                send_telegram_token_recalled(db_token.customer_info, db_token.token_number, db_token.office_type, status_note=status_label)
+        except Exception as notify_err:
+            print("[NOTIFICATION LOG] Status update dispatch error:", notify_err)
     
     return db_token
 

@@ -2,6 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException, WebSocket, WebSocketDisconn
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from pydantic import BaseModel
 from typing import List, Optional
 import os
@@ -252,11 +253,25 @@ async def update_status(token_id: int, status: str, office_type: str, db: Sessio
 def get_queue_status(office_type: str, db: Session = Depends(get_db_dynamic)):
     pending = crud.get_pending_tokens(db, office_type)
     active = crud.get_active_tokens(db, office_type)
+    start_of_day = crud.get_start_of_day()
+    
+    # Calculate tokens generated today per service code
+    today_tokens = db.query(
+        models.Token.service_code, 
+        func.count(models.Token.id)
+    ).filter(
+        models.Token.office_type == office_type,
+        models.Token.created_at >= start_of_day
+    ).group_by(models.Token.service_code).all()
+    
+    generated_counts = {code: count for code, count in today_tokens}
+    
     return {
         "pending_count": len(pending),
         "active_counters": len(set(t.counter_assigned for t in active if t.counter_assigned)),
         "active_tokens": [schemas.Token.model_validate(t).model_dump(mode='json') for t in active],
-        "pending_tokens": [schemas.Token.model_validate(t).model_dump(mode='json') for t in pending]
+        "pending_tokens": [schemas.Token.model_validate(t).model_dump(mode='json') for t in pending],
+        "generated_counts": generated_counts
     }
 
 @app.get("/api/admin/metrics")

@@ -190,6 +190,10 @@ callNextBtn.addEventListener("click", async () => {
         const token = await response.json();
         setActiveToken(token);
         refreshQueueState();
+        
+        if (window.voiceManager) {
+            window.voiceManager.announceTokenCall(token.token_number, selectedCounter, token.service_name);
+        }
     } catch (err) {
         console.error("Error calling next:", err);
     }
@@ -198,10 +202,15 @@ callNextBtn.addEventListener("click", async () => {
 recallBtn.addEventListener("click", async () => {
     if (!activeToken) return;
     try {
+        const selectedCounter = parseInt(counterSelect.value);
         const response = await fetch(`${API_BASE}/api/tokens/${activeToken.id}/recall?office_type=${sessionOffice}`, {
             method: "POST"
         });
         if (!response.ok) throw new Error("Failed to recall");
+        
+        if (window.voiceManager) {
+            window.voiceManager.announceTokenRecall(activeToken.token_number, selectedCounter);
+        }
         
         recallBtn.textContent = "🔔 Recalled!";
         setTimeout(() => {

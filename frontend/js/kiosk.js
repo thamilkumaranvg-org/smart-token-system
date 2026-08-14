@@ -264,12 +264,23 @@ async function generateRecommendedTicket(overrideTargetOffice) {
         sessionStorage.setItem("activeCustomerOffice", targetOffice);
         sessionStorage.setItem("activeTokenService", token.service_name);
         
+        // Announce token creation
+        if (window.voiceManager) {
+            window.voiceManager.announceTokenGeneration(token.token_number);
+        }
+        
+        // Refresh quota badges
+        renderServices(sessionOffice);
+        
         // Hide AI Box
         aiInput.value = "";
         aiSuggestionBox.style.display = "none";
         aiChatWindow.style.display = "none";
         
         if (targetOffice !== sessionOffice) {
+            if (window.voiceManager) {
+                window.voiceManager.announceRedirection(targetName);
+            }
             sessionStorage.setItem("userOffice", targetOffice);
             alert(`✅ Token ${token.token_number} generated successfully!\nTransferring you to the ${targetName} kiosk.`);
             window.location.href = `/static/kiosk.html?center=${targetOffice}&token=${token.token_number}`;
@@ -322,6 +333,7 @@ async function fetchAIWaitTime() {
 }
 
 // Fetch user's active token and update UI
+// Fetch user's active token and update UI
 async function checkAndLoadActiveToken() {
     const container = document.getElementById("user-token-container");
     const email = sessionStorage.getItem("userEmail");
@@ -356,7 +368,7 @@ async function checkAndLoadActiveToken() {
         const response = await fetch(`${API_BASE}/api/tokens/active?office_type=${sessionOffice}&email=${email}`);
         if (response.ok) {
             const token = await response.json();
-            if (token) {
+            if (token && ["PENDING", "SERVING", "HOLD"].includes(token.status)) {
                 sessionStorage.setItem("activeCustomerToken", token.token_number);
                 sessionStorage.setItem("activeCustomerOffice", sessionOffice);
                 sessionStorage.setItem("activeTokenService", token.service_name);
@@ -385,6 +397,13 @@ async function checkAndLoadActiveToken() {
                     document.getElementById("user-token-wait-time-container").style.display = "block";
                     fetchAIWaitTime();
                 }
+            } else {
+                // Token completed or inactive - free up user token session
+                sessionStorage.removeItem("activeCustomerToken");
+                sessionStorage.removeItem("activeCustomerOffice");
+                sessionStorage.removeItem("activeTokenService");
+                localStorage.removeItem("activeCustomerToken");
+                container.style.display = "none";
             }
         }
     } catch (err) {
@@ -395,29 +414,56 @@ async function checkAndLoadActiveToken() {
 // Initialize Kiosk
 async function initKiosk() {
     officeTypeTag.textContent = sessionOffice.replace("_", " ");
-    renderServices(sessionOffice);
+    await renderServices(sessionOffice);
     loadActiveServingToken();
     checkAndLoadActiveToken();
 }
 
-// Render service cards based on office type
-function renderServices(officeType) {
+// Render service cards with real-time remaining quota tracking
+async function renderServices(officeType) {
     const services = OFFICE_SERVICES[officeType] || OFFICE_SERVICES.BANK;
     servicesGrid.innerHTML = "";
+    
+    let generatedCounts = {};
+    try {
+        const statusRes = await fetch(`${API_BASE}/api/queues/status?office_type=${officeType}`);
+        if (statusRes.ok) {
+            const statusData = await statusRes.json();
+            generatedCounts = statusData.generated_counts || {};
+        }
+    } catch (err) {
+        console.warn("Could not fetch queue counts for dynamic remaining calculation:", err);
+    }
     
     services.forEach(service => {
         const card = document.createElement("div");
         card.className = "menu-card glass-container";
         
         let limitBadgeHtml = "";
+        let isQuotaFull = false;
+        
         if (typeof getServiceConfig === "function") {
             const cfg = getServiceConfig(officeType, service.code);
             if (cfg) {
-                limitBadgeHtml = `
-                    <div style="margin-top: 0.6rem; font-size: 0.75rem; font-weight: 700; color: var(--accent-success); background: rgba(16, 185, 129, 0.12); padding: 0.3rem 0.6rem; border-radius: 12px; border: 1px solid rgba(16, 185, 129, 0.25); display: inline-block;">
-                        🎫 Daily Cap: ${cfg.dailyLimit} tokens/day (${cfg.activeCounters} Counters @ ${cfg.avgServiceTimeMins}m)
-                    </div>
-                `;
+                const issuedToday = generatedCounts[service.code] || 0;
+                const remaining = Math.max(0, cfg.dailyLimit - issuedToday);
+                isQuotaFull = (remaining <= 0);
+                
+                if (!isQuotaFull) {
+                    limitBadgeHtml = `
+                        <div style="margin-top: 0.6rem; font-size: 0.75rem; font-weight: 700; color: var(--accent-success); background: rgba(16, 185, 129, 0.12); padding: 0.3rem 0.6rem; border-radius: 12px; border: 1px solid rgba(16, 185, 129, 0.25); display: inline-block;">
+                            🎫 Cap: ${cfg.dailyLimit} tokens/day | <span style="color: #34d399;">${remaining} Remaining</span>
+                        </div>
+                    `;
+                } else {
+                    limitBadgeHtml = `
+                        <div style="margin-top: 0.6rem; font-size: 0.75rem; font-weight: 700; color: #ef4444; background: rgba(239, 68, 68, 0.15); padding: 0.3rem 0.6rem; border-radius: 12px; border: 1px solid rgba(239, 68, 68, 0.3); display: inline-block;">
+                            🚫 Daily Quota Full (${cfg.dailyLimit}/${cfg.dailyLimit} Issued)
+                        </div>
+                    `;
+                    card.style.opacity = "0.65";
+                    card.style.filter = "grayscale(30%)";
+                }
             }
         }
         
@@ -427,7 +473,15 @@ function renderServices(officeType) {
             <div class="card-desc">${service.desc}</div>
             ${limitBadgeHtml}
         `;
-        card.addEventListener("click", () => openPhoneModal(service));
+        
+        card.addEventListener("click", () => {
+            if (isQuotaFull) {
+                alert(`Daily queue capacity reached for ${service.name}! Operating hours: ${getServiceConfig(officeType, service.code)?.openTime} - ${getServiceConfig(officeType, service.code)?.closeTime}. Please visit tomorrow.`);
+                return;
+            }
+            openPhoneModal(service);
+        });
+        
         servicesGrid.appendChild(card);
     });
 }
@@ -494,7 +548,16 @@ modalConfirmBtn.addEventListener("click", async () => {
         
         // Save the generated token to session to track for targeted notifications
         sessionStorage.setItem("activeCustomerToken", token.token_number);
-        console.log("Saved active customer token to session storage:", token.token_number);
+        sessionStorage.setItem("activeCustomerOffice", sessionOffice);
+        sessionStorage.setItem("activeTokenService", token.service_name);
+        
+        // Announce token generation
+        if (window.voiceManager) {
+            window.voiceManager.announceTokenGeneration(token.token_number);
+        }
+        
+        // Refresh quota badges
+        renderServices(sessionOffice);
         
         // Hide phone modal
         phoneModal.classList.remove("active");
@@ -543,6 +606,7 @@ function setupWebSocket() {
         if (msg.type === "CALL_TOKEN") {
             loadActiveServingToken();
             checkAndLoadActiveToken();
+            renderServices(sessionOffice);
             
             const myToken = sessionStorage.getItem("activeCustomerToken");
             const calledToken = msg.data;
@@ -570,6 +634,7 @@ function setupWebSocket() {
         } else if (msg.type === "UPDATE_STATUS" || msg.type === "NEW_TOKEN") {
             loadActiveServingToken();
             checkAndLoadActiveToken();
+            renderServices(sessionOffice);
         }
     };
     

@@ -126,20 +126,9 @@ function generatePoliteAnnouncement(tokenNumber, counterNumber) {
 }
 
 // Speak token calls out loud
-function announce(text) {
-    if (!voiceEnabled) return;
-    window.speechSynthesis.cancel();
-    
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 0.85; // Slightly slower for clear, professional speech
-    utterance.pitch = 1.0;
-    
-    const voices = window.speechSynthesis.getVoices();
-    const defaultVoice = voices.find(v => v.lang.includes("en-US") || v.lang.includes("en-GB"));
-    if (defaultVoice) {
-        utterance.voice = defaultVoice;
-    }
-    window.speechSynthesis.speak(utterance);
+function announce(tokenNumber, counterNumber, serviceName) {
+    if (!voiceEnabled || !window.voiceManager) return;
+    window.voiceManager.announceTokenCall(tokenNumber, counterNumber, serviceName);
 }
 
 // Flash specific counter card
@@ -171,8 +160,7 @@ function setupWebSocket() {
             const token = msg.data;
             loadQueueData().then(() => {
                 triggerVisualFlash(token.token_number);
-                const announcementText = generatePoliteAnnouncement(token.token_number, token.counter_assigned);
-                announce(announcementText);
+                announce(token.token_number, token.counter_assigned, token.service_name);
             });
         } else if (msg.type === "UPDATE_STATUS") {
             loadQueueData();

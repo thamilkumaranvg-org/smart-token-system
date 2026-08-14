@@ -29,40 +29,16 @@ def create_db_and_schemas_if_not_exist():
     # 1. Check if the main database exists/is connectable
     db_exists = False
     try:
-        conn = psycopg2.connect(DATABASE_URL)
+        conn = psycopg2.connect(DATABASE_URL, connect_timeout=2)
         conn.close()
         db_exists = True
     except Exception as e:
-        print(f"[INFO] Direct connection to DATABASE_URL failed: {e}. Attempting to create database if local...")
+        print(f"[INFO] Direct connection to DATABASE_URL failed: {e}.")
+        raise e
         
-    if not db_exists:
-        try:
-            # Parse DATABASE_URL to get host, user, password, port, and db_name
-            parsed = urllib.parse.urlparse(DATABASE_URL)
-            db_name = parsed.path.lstrip('/')
-            
-            # Construct a base URL connecting to the default 'postgres' database
-            base_parsed = parsed._replace(path='/postgres')
-            base_url = urllib.parse.urlunparse(base_parsed)
-            
-            conn = psycopg2.connect(base_url)
-            conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
-            cursor = conn.cursor()
-            
-            cursor.execute(f"SELECT 1 FROM pg_catalog.pg_database WHERE datname = '{db_name}'")
-            exists = cursor.fetchone()
-            if not exists:
-                cursor.execute(f"CREATE DATABASE {db_name}")
-                print(f"[INFO] Created database: {db_name}")
-            
-            cursor.close()
-            conn.close()
-        except Exception as ex:
-            print("[DATABASE STARTUP WARNING] Could not verify/create database:", ex)
-            
     # 2. Connect to the database and create the schemas
     try:
-        conn = psycopg2.connect(DATABASE_URL)
+        conn = psycopg2.connect(DATABASE_URL, connect_timeout=2)
         conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
         cursor = conn.cursor()
         
@@ -75,20 +51,32 @@ def create_db_and_schemas_if_not_exist():
     except Exception as e:
         print("[DATABASE STARTUP WARNING] Could not verify/create schemas:", e)
 
-# Run creation check immediately on import
-create_db_and_schemas_if_not_exist()
-
 # Build SQLAlchemy engines and SessionLocal managers for each center schema
 engines = {}
 session_factories = {}
 
-for office, schema in OFFICE_SCHEMAS.items():
-    # Pass connect_args options to set the search path to the specific schema
-    engines[office] = create_engine(
-        DATABASE_URL, 
-        connect_args={"options": f"-c search_path={schema}"}
-    )
-    session_factories[office] = sessionmaker(autocommit=False, autoflush=False, bind=engines[office])
+is_sqlite = "sqlite" in DATABASE_URL
+
+if not is_sqlite:
+    try:
+        if "postgresql" in DATABASE_URL:
+            create_db_and_schemas_if_not_exist()
+    except Exception as err:
+        print("[DATABASE NOTICE] Remote Postgres connection unavailable. Switching to local SQLite database.")
+        is_sqlite = True
+
+if is_sqlite:
+    SQLITE_URL = "sqlite:///./smart_token_local.db"
+    for office, schema in OFFICE_SCHEMAS.items():
+        engines[office] = create_engine(SQLITE_URL, connect_args={"check_same_thread": False})
+        session_factories[office] = sessionmaker(autocommit=False, autoflush=False, bind=engines[office])
+else:
+    for office, schema in OFFICE_SCHEMAS.items():
+        engines[office] = create_engine(
+            DATABASE_URL, 
+            connect_args={"options": f"-c search_path={schema}"}
+        )
+        session_factories[office] = sessionmaker(autocommit=False, autoflush=False, bind=engines[office])
 
 Base = declarative_base()
 

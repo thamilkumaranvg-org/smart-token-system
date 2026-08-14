@@ -6,7 +6,12 @@ from pydantic import BaseModel
 from typing import List, Optional
 import os
 import json
+import requests
+from dotenv import load_dotenv
 import google.generativeai as genai
+
+ENV_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env")
+load_dotenv(ENV_PATH, override=True)
 
 from . import models, schemas, crud
 from .database import engines, get_db_dynamic
@@ -323,21 +328,171 @@ OFFICE_SERVICES_INFO = {
     ]
 }
 
+"""
+===============================================================================
+GROQ CLOUD API SETUP GUIDE & DOCUMENTATION
+===============================================================================
+To integrate Groq Cloud API for ultra-fast Llama-3 / Mixtral inference:
+1. Go to https://console.groq.com/ and sign up or log in.
+2. Navigate to "API Keys" in the left sidebar menu.
+3. Click "Create API Key", name it (e.g. "smart-token-prod"), and copy the key.
+4. Add the key locally in backend/.env:
+   GROQ_API_KEY=gsk_your_groq_api_key_here
+   (Also add GROQ_API_KEY under Vercel / Render Environment Variables settings).
+5. Model used: "llama-3.3-70b-versatile" for AI routing and queue insights,
+   with automatic failover to Gemini ("gemini-flash-latest") or rule-based matching.
+===============================================================================
+"""
+
+ENV_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env")
+
+def call_groq_llm(prompt_text: str) -> Optional[dict]:
+    groq_key = os.getenv("GROQ_API_KEY")
+    if os.path.exists(ENV_PATH):
+        try:
+            with open(ENV_PATH, "r", encoding="utf-8") as f:
+                for line in f:
+                    if line.strip().startswith("GROQ_API_KEY="):
+                        groq_key = line.strip().split("=", 1)[1].strip()
+                        break
+        except Exception as e:
+            print("[GROQ ENV READ ERROR]", e)
+            
+    if not groq_key or not groq_key.strip():
+        print("[GROQ DEBUG] No GROQ_API_KEY found")
+        return None
+        
+    groq_key_clean = groq_key.strip()
+    try:
+        url = "https://api.groq.com/openai/v1/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {groq_key_clean}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "model": "llama-3.3-70b-versatile",
+            "messages": [
+                {"role": "user", "content": prompt_text}
+            ],
+            "response_format": {"type": "json_object"},
+            "temperature": 0.2
+        }
+        res = requests.post(url, headers=headers, json=payload, timeout=8)
+        if res.status_code == 200:
+            data = res.json()
+            content = data["choices"][0]["message"]["content"]
+            print("[AI ENGINE] Successfully processed query via Groq Cloud API (Llama-3.3-70B)")
+            return json.loads(content)
+        else:
+            print(f"[GROQ WARNING] Groq API returned status {res.status_code}: {res.text}")
+            return None
+    except Exception as err:
+        print(f"[GROQ ERROR] Failed to query Groq API: {err}")
+        return None
+
+def call_gemini_llm(prompt_text: str) -> Optional[dict]:
+    load_dotenv(ENV_PATH, override=True)
+    gemini_key = os.getenv("GEMINI_API_KEY")
+    if not gemini_key or not gemini_key.strip():
+        return None
+    try:
+        genai.configure(api_key=gemini_key.strip())
+        model = genai.GenerativeModel("gemini-flash-latest")
+        response = model.generate_content(prompt_text)
+        text_resp = response.text.strip()
+        if text_resp.startswith("```json"):
+            text_resp = text_resp[7:]
+        if text_resp.endswith("```"):
+            text_resp = text_resp[:-3]
+        print("[AI ENGINE] Successfully processed query via Google Gemini API")
+        return json.loads(text_resp.strip())
+    except Exception as err:
+        print(f"[GEMINI ERROR] Failed to query Gemini API: {err}")
+        return None
+
+def fallback_rule_based_routing(user_input: str, current_office: str) -> dict:
+    inp = user_input.lower()
+    
+    # Check Municipal
+    if any(k in inp for k in ["birth", "death", "marriage", "civil", "tax", "property tax", "permit", "license", "building", "drainage", "water", "complaint"]):
+        rec_center = "MUNICIPAL"
+        if any(k in inp for k in ["tax", "property", "dues"]):
+            code, name = "TX", "Taxation & Payments"
+            docs = ["Property Assessment Number", "Previous Tax Receipt", "Aadhaar Card"]
+        elif any(k in inp for k in ["permit", "license", "building", "construction"]):
+            code, name = "PL", "Permits & Licenses"
+            docs = ["Approved Building Plan", "Land Ownership Proof / Patta", "Applicant ID Proof"]
+        elif any(k in inp for k in ["drainage", "water", "utility", "complaint"]):
+            code, name = "UG", "Utilities & Grievances"
+            docs = ["Water Connection Passbook / Connection ID", "Aadhaar Card", "Written Complaint Form"]
+        else:
+            code, name = "CR", "Civil Registration"
+            docs = ["Hospital Discharge / Birth Note", "Parents' Aadhaar Cards", "Marriage Certificate Copy"]
+            
+    # Check E-Sevai
+    elif any(k in inp for k in ["patta", "chitta", "land", "revenue", "income", "nativity", "community", "first graduate", "pension", "widow", "disability"]):
+        rec_center = "ESEVAI"
+        if any(k in inp for k in ["pension", "widow", "disability", "old age"]):
+            code, name = "SS", "Pension Schemes"
+            docs = ["Aadhaar Card", "Bank Account Passbook", "Income Certificate / Medical Certificate"]
+        elif any(k in inp for k in ["patta", "chitta", "land", "a-register"]):
+            code, name = "LD", "Land & Utilities"
+            docs = ["Sale Deed Copy", "Encumbrance Certificate (EC)", "Aadhaar Card"]
+        else:
+            code, name = "RV", "Revenue Certificates"
+            docs = ["Aadhaar Card", "Ration Card / Smart Card", "Passport Size Photograph"]
+
+    # Check Post Office
+    elif any(k in inp for k in ["post", "parcel", "speed post", "registered post", "ippb", "money order", "pli", "insurance", "stamps"]):
+        rec_center = "POST_OFFICE"
+        if any(k in inp for k in ["savings", "ippb", "money order"]):
+            code, name = "SB", "Savings Bank & Money transfer"
+            docs = ["Post Office Savings Passbook / IPPB Card", "PAN Card", "Aadhaar Card"]
+        elif any(k in inp for k in ["pli", "insurance", "life"]):
+            code, name = "INS", "Postal Life Insurance"
+            docs = ["Policy Document / Proposal Form", "Age Proof (Aadhaar/School Certificate)", "Medical Fitness Certificate"]
+        elif any(k in inp for k in ["retail", "passport seva"]):
+            code, name = "RT", "Retail & Aadhaar"
+            docs = ["Aadhaar Card / Enrollment Slip", "Proof of Identity", "Proof of Address"]
+        else:
+            code, name = "MP", "Mails & Parcels"
+            docs = ["Sender ID Proof (Aadhaar/Voter ID)", "Packed Parcel / Document Envelopes", "Recipient Full Address"]
+
+    # Default to Bank
+    else:
+        rec_center = "BANK"
+        if any(k in inp for k in ["cash", "deposit", "withdraw", "cheque"]):
+            code, name = "CS", "Cash Transactions"
+            docs = ["Bank Account Passbook", "Cheque Book / Deposit Slip", "PAN Card (for transactions > 50k)"]
+        elif any(k in inp for k in ["loan", "fd", "rd", "aadhaar"]):
+            code, name = "AD", "Aadhaar & Loans"
+            docs = ["Income Proof (ITR / Pay Slips)", "3 Months Bank Statements", "Aadhaar Card & PAN Card"]
+        else:
+            code, name = "AC", "Account Opening & KYC"
+            docs = ["Aadhaar Card", "PAN Card", "2 Passport Size Photos", "Address Proof"]
+
+    belongs = (rec_center == current_office)
+    reasoning = f"{name} is provided by the {rec_center.replace('_', ' ')} kiosk."
+    if not belongs:
+        reasoning += f" Since you are currently at the {current_office.replace('_', ' ')} kiosk, would you like to generate a queue token and transfer to the {rec_center.replace('_', ' ')} office kiosk?"
+        
+    return {
+        "belongs_to_current_center": belongs,
+        "recommended_center": rec_center,
+        "service_code": code,
+        "service_name": name,
+        "reasoning": reasoning,
+        "documents": docs
+    }
+
 @app.post("/api/ai/route-service")
 def ai_route_service(payload: AIServiceRouteRequest):
-    api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key:
-        raise HTTPException(status_code=500, detail="Gemini API Key not configured on server.")
-    
     current_office = payload.office_type.upper().strip()
-    
-    # Configure Gemini
-    genai.configure(api_key=api_key)
     
     prompt = f"""
 You are an expert AI queue receptionist for a multi-center public portal.
 The user is currently visiting the {current_office} kiosk.
-Your task is to analyze the user's request and match it to the correct service category across any of our centers.
+User input: "{payload.user_input}"
 
 Available Centers and their Service Categories:
 {json.dumps(OFFICE_SERVICES_INFO, indent=2)}
@@ -345,51 +500,36 @@ Available Centers and their Service Categories:
 Strictest Rules:
 1. Scan ALL available centers first. Match the user's request to the category that fits best semantically.
 2. If the request fits a category in a DIFFERENT center better than any category in the current center ({current_office}), you MUST set "belongs_to_current_center" to false and set "recommended_center" to the center that actually handles it.
-3. Example: "Nativity certificate" or "Community certificate" is a Revenue Certificate, which belongs to ESEVAI. If current_office is POST_OFFICE, you MUST set "belongs_to_current_center" to false and "recommended_center" to "ESEVAI". Do NOT force it to match POST_OFFICE!
-4. Respond ONLY with a JSON object in this exact format:
+3. Example: "Birth certificate" or "Marriage registration" is Civil Registration, which belongs to MUNICIPAL. If current_office is BANK, set "belongs_to_current_center" to false and "recommended_center" to "MUNICIPAL".
+4. List 3 to 4 specific required documents for the matched service under "documents".
+5. Respond ONLY with a JSON object in this exact format:
 {{
   "belongs_to_current_center": false,
   "recommended_center": "RECOMMENDED_CENTER_NAME",
   "service_code": "SERVICE_CODE",
   "service_name": "SERVICE_NAME",
-  "reasoning": "A polite explanation stating which center handles this service and why you are redirecting them.",
-  "documents": ["Required Document 1", "Required Document 2", ...]
+  "reasoning": "Civil Registration (Birth Certificate) is provided at the Municipal Corporation Center. Would you like to generate a queue token and transfer to the Municipal Office kiosk?",
+  "documents": ["Hospital Discharge / Birth Note", "Parents' Aadhaar Cards", "Marriage Certificate Copy"]
 }}
 """
-    try:
-        model = genai.GenerativeModel("gemini-flash-latest")
-        response = model.generate_content(prompt)
-        text_resp = response.text.strip()
+    # 1. Try Groq Cloud API
+    parsed = call_groq_llm(prompt)
+    if not parsed:
+        # 2. Try Gemini API fallback
+        parsed = call_gemini_llm(prompt)
         
-        # Clean response string to extract JSON (in case model wraps it in markdown)
-        if text_resp.startswith("```json"):
-            text_resp = text_resp[7:]
-        if text_resp.endswith("```"):
-            text_resp = text_resp[:-3]
-        text_resp = text_resp.strip()
+    if not parsed:
+        # 3. Intelligent Rule-Based Fallback
+        parsed = fallback_rule_based_routing(payload.user_input, current_office)
         
-        parsed = json.loads(text_resp)
+    # Ensure fields exist
+    if "belongs_to_current_center" not in parsed:
+        parsed["belongs_to_current_center"] = (parsed.get("recommended_center") == current_office)
         
-        # Ensure fields exist
-        if "belongs_to_current_center" not in parsed:
-            parsed["belongs_to_current_center"] = (parsed.get("recommended_center") == current_office)
-            
-        return parsed
-    except Exception as e:
-        print("Gemini API Error:", e)
-        raise HTTPException(status_code=500, detail=f"AI routing failed: {str(e)}")
+    return parsed
 
 @app.get("/api/admin/ai-insights")
 def get_ai_insights(office_type: str, db: Session = Depends(get_db_dynamic)):
-    api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key:
-        return {
-            "predicted_wait_time_minutes": 0,
-            "efficiency_score": 100,
-            "bottleneck_service": "None",
-            "recommendation": "Configure GEMINI_API_KEY in .env to enable AI insights and predictions!"
-        }
-        
     start_of_day = crud.get_start_of_day()
     pending = db.query(models.Token).filter(
         models.Token.status == "PENDING",
@@ -429,7 +569,6 @@ def get_ai_insights(office_type: str, db: Session = Depends(get_db_dynamic)):
         "completed_by_service": completed_by_service
     }
     
-    genai.configure(api_key=api_key)
     prompt = f"""
 You are an expert AI queue management optimizer.
 Analyze this real-time queue snapshot for a {office_type} service center and provide predicted wait times and resource allocation advice.
@@ -445,24 +584,24 @@ You must respond ONLY with a JSON object in this exact format:
   "recommendation": "Provide a single highly actionable tip to clear the queue backlog or improve counter assignments based on the snapshot."
 }}
 """
-    try:
-        model = genai.GenerativeModel("gemini-flash-latest")
-        response = model.generate_content(prompt)
-        text_resp = response.text.strip()
+    # 1. Try Groq API
+    parsed = call_groq_llm(prompt)
+    if not parsed:
+        # 2. Try Gemini API
+        parsed = call_gemini_llm(prompt)
         
-        if text_resp.startswith("```json"):
-            text_resp = text_resp[7:]
-        if text_resp.endswith("```"):
-            text_resp = text_resp[:-3]
-        text_resp = text_resp.strip()
-        
-        parsed = json.loads(text_resp)
+    if parsed:
         return parsed
-    except Exception as e:
-        print("Gemini AI Insights Error:", e)
-        return {
-            "predicted_wait_time_minutes": len(pending) * 5,  # Fallback: simple heuristic
-            "efficiency_score": 85,
-            "bottleneck_service": "Unavailable",
-            "recommendation": f"AI Insights temporarily offline: {str(e)}"
-        }
+        
+    # 3. Dynamic Calculation Fallback
+    est_minutes = max(2, (len(pending) * 4) // max(1, active_counters_count))
+    bottleneck = "None"
+    if pending_by_service:
+        bottleneck = max(pending_by_service, key=pending_by_service.get)
+        
+    return {
+        "predicted_wait_time_minutes": est_minutes,
+        "efficiency_score": 95 if len(pending) < 5 else 80,
+        "bottleneck_service": bottleneck,
+        "recommendation": f"Current queue is optimal (~{est_minutes} min wait). Consider adding counters if waiting count exceeds 10."
+    }

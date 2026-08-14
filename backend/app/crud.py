@@ -21,7 +21,72 @@ def generate_token_number(db: Session, service_code: str, office_type: str) -> s
     next_num = (count or 0) + 1
     return f"{service_code}-{next_num:02d}"
 
+KIOSK_CONFIG_LIMITS = {
+    "BANK": {
+        "openTime": "09:30", "closeTime": "16:00", "breakMins": 30,
+        "services": {
+            "AC": {"avgMins": 10, "counters": 2},
+            "CS": {"avgMins": 5, "counters": 3},
+            "AD": {"avgMins": 12, "counters": 2}
+        }
+    },
+    "MUNICIPAL": {
+        "openTime": "10:00", "closeTime": "17:00", "breakMins": 45,
+        "services": {
+            "CR": {"avgMins": 12, "counters": 2},
+            "PL": {"avgMins": 15, "counters": 2},
+            "TX": {"avgMins": 10, "counters": 2},
+            "UG": {"avgMins": 10, "counters": 2}
+        }
+    },
+    "ESEVAI": {
+        "openTime": "09:00", "closeTime": "17:00", "breakMins": 30,
+        "services": {
+            "RV": {"avgMins": 8, "counters": 3},
+            "SS": {"avgMins": 10, "counters": 2},
+            "LD": {"avgMins": 12, "counters": 2}
+        }
+    },
+    "POST_OFFICE": {
+        "openTime": "09:00", "closeTime": "16:00", "breakMins": 30,
+        "services": {
+            "RT": {"avgMins": 15, "counters": 2},
+            "MP": {"avgMins": 6, "counters": 2},
+            "SB": {"avgMins": 8, "counters": 2},
+            "INS": {"avgMins": 12, "counters": 1}
+        }
+    }
+}
+
+def calculate_daily_limit(office_type: str, service_code: str) -> int:
+    office_cfg = KIOSK_CONFIG_LIMITS.get(office_type, KIOSK_CONFIG_LIMITS["BANK"])
+    svc_cfg = office_cfg["services"].get(service_code, {"avgMins": 10, "counters": 2})
+    
+    open_h, open_m = map(int, office_cfg["openTime"].split(":"))
+    close_h, close_m = map(int, office_cfg["closeTime"].split(":"))
+    
+    total_operating_mins = (close_h * 60 + close_m) - (open_h * 60 + open_m)
+    effective_working_mins = max(0, total_operating_mins - office_cfg["breakMins"])
+    
+    if svc_cfg["avgMins"] <= 0 or svc_cfg["counters"] <= 0:
+        return 100
+        
+    return int((effective_working_mins / svc_cfg["avgMins"]) * svc_cfg["counters"])
+
 def create_token(db: Session, token_in: schemas.TokenCreate, office_type: str) -> models.Token:
+    start_of_day = get_start_of_day()
+    
+    # Check dynamic daily token limit
+    tokens_today = db.query(func.count(models.Token.id)).filter(
+        models.Token.service_code == token_in.service_code,
+        models.Token.office_type == office_type,
+        models.Token.created_at >= start_of_day
+    ).scalar() or 0
+    
+    limit = calculate_daily_limit(office_type, token_in.service_code)
+    if tokens_today >= limit:
+        raise ValueError(f"Daily queue token limit ({limit} tokens/day) reached for this service category.")
+
     if token_in.customer_email:
         # Check for active token (PENDING, SERVING, or HOLD) for this user in this office
         active_token = db.query(models.Token).filter(

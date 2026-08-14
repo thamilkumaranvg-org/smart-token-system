@@ -114,8 +114,8 @@
     </div>
 
     <!-- AI Floating Chat Window -->
-    <div id="ai-chat-window" class="glass-container" style="display: none; position: fixed; bottom: 6.5rem; right: 2rem; width: 380px; max-width: calc(100vw - 4rem); max-height: 500px; flex-direction: column; z-index: 9999; border: 1px solid rgba(99, 102, 241, 0.3); background: rgba(15, 23, 42, 0.85); box-shadow: 0 12px 40px rgba(0,0,0,0.5); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); padding: 1.5rem; border-radius: var(--radius-lg);">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 0.75rem;">
+    <div id="ai-chat-window" class="glass-container" style="display: none; position: fixed; bottom: 6.5rem; right: 2rem; width: 380px; max-width: calc(100vw - 4rem); max-height: 520px; flex-direction: column; z-index: 9999; padding: 1.5rem; border-radius: var(--radius-lg);">
+        <div class="ai-chat-divider" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem;">
             <div style="display: flex; gap: 0.5rem; align-items: center;">
                 <span style="font-size: 1.4rem;">🤖</span>
                 <h3 style="font-size: 1.1rem; font-weight: 700; margin: 0; color: var(--text-primary); text-align: left;">AI Kiosk Assistant</h3>
@@ -128,7 +128,7 @@
             </p>
             
             <!-- AI Recommendation Area -->
-            <div id="ai-suggestion-box" style="display: none; padding: 1rem; border-radius: var(--radius-md); background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); flex-direction: column; gap: 0.5rem; text-align: left;">
+            <div id="ai-suggestion-box" style="display: none; padding: 1rem; border-radius: var(--radius-md); flex-direction: column; gap: 0.5rem; text-align: left;">
                 <div style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--accent-success); letter-spacing: 0.05em;">
                     AI Recommendation
                 </div>
@@ -144,12 +144,13 @@
                 </div>
             </div>
         </div>
-        <div style="display: flex; gap: 0.5rem; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 0.75rem;">
+        <div class="ai-chat-divider" style="display: flex; gap: 0.5rem; border-top: 1px solid var(--border-color); padding-top: 0.75rem;">
             <input type="text" id="ai-input" class="form-input" placeholder="e.g. Deposit money or Patta transfer" style="flex: 1; padding: 0.6rem 1rem; font-size: 0.9rem;">
             <button id="ai-ask-btn" class="btn btn-primary" style="padding: 0.6rem 1.2rem; font-size: 0.9rem; min-width: 80px;">Ask</button>
         </div>
     </div>
 
+    <script src="/static/js/kioskConfig.js"></script>
     <script src="/static/js/kiosk.js"></script>
 </body>
 </html>

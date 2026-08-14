@@ -138,10 +138,9 @@ aiAskBtn.addEventListener("click", async () => {
         }
         
         const data = await response.json();
-        
         aiRecommendedService = data;
         
-        // Populate documents list
+        // Populate required documents list
         aiRecDocs.innerHTML = "";
         if (data.documents && data.documents.length > 0) {
             data.documents.forEach(doc => {
@@ -151,40 +150,52 @@ aiAskBtn.addEventListener("click", async () => {
             });
         } else {
             const li = document.createElement("li");
-            li.textContent = "None specified. Bring standard ID proof.";
+            li.textContent = "Standard ID & Address Proof";
             aiRecDocs.appendChild(li);
         }
         
         aiRecReason.textContent = data.reasoning;
         
+        const centerNames = {
+            BANK: "Bank Branch",
+            ESEVAI: "E-Sevai Maiyam",
+            POST_OFFICE: "Post Office",
+            MUNICIPAL: "Municipal Corporation"
+        };
+        
         // Check if the service belongs to the current center
         if (data.belongs_to_current_center) {
             aiRecService.textContent = `${data.service_code} - ${data.service_name}`;
-            aiGenerateBtn.textContent = "Generate Ticket";
+            aiGenerateBtn.textContent = "🎫 Generate Ticket";
             aiGenerateBtn.className = "btn btn-success";
-            aiGenerateBtn.onclick = generateRecommendedTicket;
+            aiGenerateBtn.onclick = () => generateRecommendedTicket(sessionOffice);
         } else {
-            const centerNames = {
-                BANK: "Bank Branch",
-                ESEVAI: "E-Sevai Maiyam",
-                POST_OFFICE: "Post Office",
-                MUNICIPAL: "Municipal Corporation"
-            };
             const targetName = centerNames[data.recommended_center] || data.recommended_center;
             aiRecService.textContent = `[${targetName}] ${data.service_code} - ${data.service_name}`;
             
-            aiGenerateBtn.textContent = `Switch to ${targetName}`;
+            aiGenerateBtn.textContent = `🎫 Generate Ticket & Transfer to ${targetName}`;
             aiGenerateBtn.className = "btn btn-primary";
-            aiGenerateBtn.onclick = () => {
-                sessionStorage.setItem("userOffice", data.recommended_center);
-                window.location.href = `/static/kiosk.html?center=${data.recommended_center}&auto_query=${encodeURIComponent(query)}`;
-            };
+            aiGenerateBtn.onclick = () => generateRecommendedTicket(data.recommended_center);
         }
         
         aiSuggestionBox.style.display = "flex";
     } catch (err) {
-        alert(err.message || "Error calling Gemini AI. Make sure GEMINI_API_KEY is configured.");
-        console.error(err);
+        console.error("AI Routing fallback:", err);
+        aiRecommendedService = {
+            service_code: "GEN",
+            service_name: "General Help",
+            belongs_to_current_center: true,
+            recommended_center: sessionOffice,
+            reasoning: "Please select your required service category from the main menu below to generate your queue ticket.",
+            documents: ["Standard Government Photo ID (Aadhaar / Voter ID)"]
+        };
+        aiRecService.textContent = "General Kiosk Service";
+        aiRecReason.textContent = aiRecommendedService.reasoning;
+        aiRecDocs.innerHTML = "<li>Bring standard government photo ID (Aadhaar / Voter ID)</li>";
+        aiGenerateBtn.textContent = "🎫 Generate Ticket";
+        aiGenerateBtn.className = "btn btn-primary";
+        aiGenerateBtn.onclick = () => { aiSuggestionBox.style.display = "none"; };
+        aiSuggestionBox.style.display = "flex";
     } finally {
         aiAskBtn.disabled = false;
         aiAskBtn.textContent = "Ask";
@@ -198,24 +209,37 @@ aiCancelBtn.addEventListener("click", () => {
     aiRecommendedService = null;
 });
 
-// Generate AI Recommended Ticket (Named Function)
-async function generateRecommendedTicket() {
+// Generate AI Recommended Ticket & Cross-Kiosk Transfer
+async function generateRecommendedTicket(overrideTargetOffice) {
     if (!aiRecommendedService) return;
     
-    // Ask for mobile phone number for WhatsApp alerts if not entered
+    const targetOffice = overrideTargetOffice || aiRecommendedService.recommended_center || sessionOffice;
+    const centerNames = {
+        BANK: "Bank Branch",
+        ESEVAI: "E-Sevai Maiyam",
+        POST_OFFICE: "Post Office",
+        MUNICIPAL: "Municipal Corporation"
+    };
+    const targetName = centerNames[targetOffice] || targetOffice;
+    
+    // Ask for mobile phone number for alerts if not entered
     let customerPhone = phoneInput.value.trim();
     if (!customerPhone) {
-        customerPhone = prompt("Enter your 10-digit Mobile Number for WhatsApp notification:") || "";
+        customerPhone = prompt(`Please enter your 10-digit Mobile Number for queue ticket & Telegram alert at ${targetName}:`) || "";
+    }
+    
+    if (!customerPhone || customerPhone.trim().length < 5) {
+        alert("Mobile number is required to receive queue token alerts.");
+        return;
     }
     
     aiGenerateBtn.disabled = true;
+    aiGenerateBtn.textContent = "Generating Ticket...";
     const customerEmail = sessionStorage.getItem("userEmail");
-    
-    // Use customer phone number if provided so WhatsApp dispatcher triggers
-    const customerInfo = customerPhone.trim() ? customerPhone.trim() : "AI Routed Ticket";
+    const customerInfo = customerPhone.trim();
     
     try {
-        const response = await fetch(`${API_BASE}/api/tokens/generate?office_type=${sessionOffice}`, {
+        const response = await fetch(`${API_BASE}/api/tokens/generate?office_type=${targetOffice}`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
@@ -235,45 +259,47 @@ async function generateRecommendedTicket() {
         
         const token = await response.json();
         
-        // Save the generated token to session to track for targeted notifications
+        // Save the generated token to session to track across pages
         sessionStorage.setItem("activeCustomerToken", token.token_number);
+        sessionStorage.setItem("activeCustomerOffice", targetOffice);
+        sessionStorage.setItem("activeTokenService", token.service_name);
         
         // Hide AI Box
         aiInput.value = "";
         aiSuggestionBox.style.display = "none";
         aiChatWindow.style.display = "none";
         
-        // Show ticket success modal with documents
-        ticketNumber.textContent = token.token_number;
-        ticketService.textContent = token.service_name;
-        
-        const dateStr = new Date(token.created_at).toLocaleString();
-        ticketTime.textContent = dateStr;
-        
-        // Show required documents list in success modal
-        ticketDocsList.innerHTML = "";
-        if (aiRecommendedService.documents && aiRecommendedService.documents.length > 0) {
-            aiRecommendedService.documents.forEach(doc => {
-                const li = document.createElement("li");
-                li.textContent = doc;
-                ticketDocsList.appendChild(li);
-            });
-            ticketDocsContainer.style.display = "block";
+        if (targetOffice !== sessionOffice) {
+            sessionStorage.setItem("userOffice", targetOffice);
+            alert(`✅ Token ${token.token_number} generated successfully!\nTransferring you to the ${targetName} kiosk.`);
+            window.location.href = `/static/kiosk.html?center=${targetOffice}&token=${token.token_number}`;
         } else {
-            ticketDocsContainer.style.display = "none";
+            // Show ticket success modal
+            ticketNumber.textContent = token.token_number;
+            ticketService.textContent = token.service_name;
+            ticketTime.textContent = new Date(token.created_at).toLocaleString();
+            
+            ticketDocsList.innerHTML = "";
+            if (aiRecommendedService.documents && aiRecommendedService.documents.length > 0) {
+                aiRecommendedService.documents.forEach(doc => {
+                    const li = document.createElement("li");
+                    li.textContent = doc;
+                    ticketDocsList.appendChild(li);
+                });
+                ticketDocsContainer.style.display = "block";
+            } else {
+                ticketDocsContainer.style.display = "none";
+            }
+            
+            successModal.style.display = "flex";
+            checkAndLoadActiveToken();
         }
-        
-        successModal.classList.add("active");
-        
-        // Refresh active token display
-        checkAndLoadActiveToken();
-        
     } catch (err) {
-        alert(err.message || "Error generating token.");
+        alert(err.message || "Error generating ticket.");
         console.error(err);
     } finally {
         aiGenerateBtn.disabled = false;
-        aiRecommendedService = null;
+        aiGenerateBtn.textContent = "Generate Ticket";
     }
 }
 
@@ -297,28 +323,51 @@ async function fetchAIWaitTime() {
 
 // Fetch user's active token and update UI
 async function checkAndLoadActiveToken() {
+    const container = document.getElementById("user-token-container");
     const email = sessionStorage.getItem("userEmail");
+    
+    // Check URL parameters & sessionStorage
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlToken = urlParams.get("token");
+    const activeTokenNum = sessionStorage.getItem("activeCustomerToken");
+    const activeOffice = sessionStorage.getItem("activeCustomerOffice") || sessionOffice;
+    
+    const displayToken = urlToken || (activeOffice === sessionOffice ? activeTokenNum : null);
+    
+    if (displayToken) {
+        container.style.display = "flex";
+        document.getElementById("user-token-number").textContent = displayToken;
+        const savedSvc = sessionStorage.getItem("activeTokenService") || "Queue Ticket";
+        document.getElementById("user-token-service").textContent = savedSvc;
+        
+        const statusEl = document.getElementById("user-token-status");
+        statusEl.textContent = "PENDING";
+        statusEl.style.background = "rgba(99, 102, 241, 0.15)";
+        statusEl.style.border = "1px solid rgba(99, 102, 241, 0.3)";
+        statusEl.style.color = "var(--accent-primary)";
+        
+        document.getElementById("user-token-wait-time-container").style.display = "block";
+        fetchAIWaitTime();
+    }
+    
     if (!email) return;
     
     try {
         const response = await fetch(`${API_BASE}/api/tokens/active?office_type=${sessionOffice}&email=${email}`);
         if (response.ok) {
             const token = await response.json();
-            const container = document.getElementById("user-token-container");
             if (token) {
-                // Save the generated token to session to track for notifications
                 sessionStorage.setItem("activeCustomerToken", token.token_number);
+                sessionStorage.setItem("activeCustomerOffice", sessionOffice);
+                sessionStorage.setItem("activeTokenService", token.service_name);
                 
-                // Show container and populate
                 container.style.display = "flex";
                 document.getElementById("user-token-number").textContent = token.token_number;
-                const translatedSvc = (typeof getTranslation === 'function') ? getTranslation(token.service_name) : token.service_name;
-                document.getElementById("user-token-service").textContent = translatedSvc;
+                document.getElementById("user-token-service").textContent = token.service_name;
                 
                 const statusEl = document.getElementById("user-token-status");
                 statusEl.textContent = token.status;
                 
-                // Style based on status
                 if (token.status === "SERVING") {
                     statusEl.style.background = "rgba(16, 185, 129, 0.15)";
                     statusEl.style.border = "1px solid rgba(16, 185, 129, 0.3)";
@@ -330,17 +379,12 @@ async function checkAndLoadActiveToken() {
                     statusEl.style.color = "var(--accent-warning)";
                     document.getElementById("user-token-wait-time-container").style.display = "none";
                 } else {
-                    // PENDING
                     statusEl.style.background = "rgba(99, 102, 241, 0.15)";
                     statusEl.style.border = "1px solid rgba(99, 102, 241, 0.3)";
                     statusEl.style.color = "var(--accent-primary)";
-                    
                     document.getElementById("user-token-wait-time-container").style.display = "block";
                     fetchAIWaitTime();
                 }
-            } else {
-                sessionStorage.removeItem("activeCustomerToken");
-                container.style.display = "none";
             }
         }
     } catch (err) {
@@ -364,10 +408,24 @@ function renderServices(officeType) {
     services.forEach(service => {
         const card = document.createElement("div");
         card.className = "menu-card glass-container";
+        
+        let limitBadgeHtml = "";
+        if (typeof getServiceConfig === "function") {
+            const cfg = getServiceConfig(officeType, service.code);
+            if (cfg) {
+                limitBadgeHtml = `
+                    <div style="margin-top: 0.6rem; font-size: 0.75rem; font-weight: 700; color: var(--accent-success); background: rgba(16, 185, 129, 0.12); padding: 0.3rem 0.6rem; border-radius: 12px; border: 1px solid rgba(16, 185, 129, 0.25); display: inline-block;">
+                        🎫 Daily Cap: ${cfg.dailyLimit} tokens/day (${cfg.activeCounters} Counters @ ${cfg.avgServiceTimeMins}m)
+                    </div>
+                `;
+            }
+        }
+        
         card.innerHTML = `
             <div class="card-icon">${service.icon}</div>
             <div class="card-title">${service.name}</div>
             <div class="card-desc">${service.desc}</div>
+            ${limitBadgeHtml}
         `;
         card.addEventListener("click", () => openPhoneModal(service));
         servicesGrid.appendChild(card);
